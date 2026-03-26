@@ -14,13 +14,13 @@ const prisma = new PrismaClient();
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const weeks = [
-  { id: 1, title: "Foundations" },
-  { id: 2, title: "Engineering" },
-  { id: 3, title: "Embeddings" },
-  { id: 4, title: "RAG Pipeline" },
-  { id: 5, title: "Agents & Tools" },
-  { id: 6, title: "Fine-tuning" },
-  { id: 7, title: "Security" },
+  { id: 1, title: "Foundation & Retrieval" },
+  { id: 2, title: "Security & Local AI" },
+  { id: 3, title: "Production RAG & Agents" },
+  { id: 4, title: "Data & Retrieval Ops" },
+  { id: 5, title: "Agents & Docker" },
+  { id: 6, title: "Scaling & SaaS Engine" },
+  { id: 7, title: "Security Mastery" },
   { id: 8, title: "Red Teaming" },
   { id: 9, title: "Strategy" },
   { id: 10, title: "Capstone" },

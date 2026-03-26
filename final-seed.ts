@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { curriculum, projectLadder, graduationChecklist } from './src/data/seedData';
+import { curriculum, projectLadder, graduationChecklist } from './src/data/seedData.ts';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,18 +7,21 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 const weeks = [
-  { id: 1, title: "Foundations" },
-  { id: 2, title: "Engineering" },
-  { id: 3, title: "Embeddings" },
-  { id: 4, title: "RAG Pipeline" },
-  { id: 5, title: "Agents & Tools" },
-  { id: 6, title: "Fine-tuning" },
-  { id: 7, title: "Security" },
-  { id: 8, title: "Red Teaming" },
-  { id: 9, title: "Strategy" },
-  { id: 10, title: "Capstone" },
-  { id: 11, title: "Internship Ready" },
-  { id: 12, title: "Job Ready" },
+  { id: 0, title: "Week 0: Prerequisites" },
+  { id: 1, title: "Week 1: Foundations & RAG" },
+  { id: 2, title: "Week 2: Advanced Retrieval" },
+  { id: 3, title: "Week 3: Agentic RAG" },
+  { id: 4, title: "Week 4: AI Product Eng I" },
+  { id: 5, title: "Week 5: AI Product Eng II" },
+  { id: 6, title: "Week 6: AI Product Eng III" },
+  { id: 7, title: "Week 7: Red Teaming I" },
+  { id: 8, title: "Week 8: Red Teaming II" },
+  { id: 9, title: "Week 9: Red Teaming III" },
+  { id: 10, title: "Week 10: Model Eng I" },
+  { id: 11, title: "Week 11: Model Eng II" },
+  { id: 12, title: "Week 12: Model Eng III" },
+  { id: 13, title: "Week 13: LLMOps" },
+  { id: 14, title: "Week 14: Global Capstone" },
 ];
 
 async function main() {

@@ -42,7 +42,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(3);
   const [activeDay, setActiveDay] = useState(15); // Start at Day 15 (Week 3) per request for AI Product Eng Priority
-  const [activeTab, setActiveTab] = useState<'foundations' | 'product-eng' | 'red-teaming' | 'resources' | 'debugging' | 'secrets'>('product-eng');
+  const [activeTab, setActiveTab] = useState<'foundations' | 'product-eng' | 'red-teaming' | 'elite-model' | 'resources' | 'debugging' | 'secrets'>('product-eng');
   const [viewMode, setViewMode] = useState<'dashboard' | 'mission'>('dashboard');
 
   const [userName, setUserName] = useState("Shubham B.");
@@ -375,10 +375,12 @@ export default function App() {
     if (typeof firstDayOfWeek === 'number') {
       setActiveDay(firstDayOfWeek);
     }
-    // Logic to switch tab if week is selected from a different category
-    if ([1, 2].includes(week)) setActiveTab('foundations');
-    else if ([7, 8].includes(week)) setActiveTab('red-teaming');
-    else setActiveTab('product-eng');
+    // Logic to switch tab based on new 42-day (6 week) roadmap
+    if ([1, 2, 3].includes(week)) setActiveTab('foundations');
+    else if ([4, 5, 6].includes(week)) setActiveTab('product-eng');
+    else if ([7, 8, 9].includes(week)) setActiveTab('red-teaming');
+    else if ([10, 11, 12].includes(week)) setActiveTab('elite-model');
+    else setActiveTab('product-eng'); // Fallback for weeks 13+
   };
 
   const startBuild = () => {
@@ -500,50 +502,190 @@ export default function App() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">
-              {activeTab === 'foundations' ? 'Foundations Flow' : 
-               activeTab === 'red-teaming' ? 'Red Team Flow' : 
-               activeTab === 'product-eng' ? 'Engineering Flow' : 'General Flow'}
-            </h3>
-            <div className="space-y-1">
+          <div className="space-y-4">
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">Mission Syllabus</h3>
+            
+            <div className="space-y-2">
+              {/* Category: Foundations */}
               <div className="space-y-1">
-                {(weeksData.length > 0 ? weeksData : [
-                  { id: 1, title: "Foundations", week: 1 },
-                  { id: 2, title: "Engineering", week: 2 },
-                  { id: 3, title: "Embeddings", week: 3 },
-                  { id: 4, title: "RAG Pipeline", week: 4 },
-                  { id: 5, title: "Agents & Tools", week: 5 },
-                  { id: 6, title: "Fine-tuning", week: 6 },
-                  { id: 7, title: "Security", week: 7 },
-                  { id: 8, title: "Red Teaming", week: 8 },
-                  { id: 9, title: "Strategy", week: 9 },
-                  { id: 10, title: "Capstone", week: 10 },
-                  { id: 11, title: "Internship Ready", week: 11 },
-                  { id: 12, title: "Job Ready", week: 12 },
-                ]).filter(week => {
-                  if (activeTab === 'foundations') return [1, 2].includes(week.week);
-                  if (activeTab === 'red-teaming') return [7, 8].includes(week.week);
-                  if (activeTab === 'product-eng') return [3, 4, 5, 6, 9, 10, 11, 12].includes(week.week);
-                  return true; // Show all if in other tabs or fallback
-                }).map(week => (
-                  <button
-                    key={week.id}
-                    onClick={() => selectWeek(week.week)}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === week.week
-                        ? 'bg-[#F27D26] text-black font-bold'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs opacity-50">W{week.week}</span>
-                      <span className="text-sm uppercase tracking-tight">
-                        {week.title}
-                      </span>
-                    </div>
-                    {selectedWeek === week.week && <ChevronRight className="w-4 h-4" />}
-                  </button>
-                ))}
+                <button
+                  onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'foundations' ? 'bg-orange-400/10 border-orange-400/30 text-orange-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
+                    <Activity className="w-4 h-4" /> Foundations
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'foundations' ? 'rotate-90' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {activeTab === 'foundations' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-1 mt-1 px-1"
+                    >
+                      {[0, 1, 2, 3].map(wNum => {
+                        const weekObj = weeksData.find(w => w.week === wNum) || { 
+                          week: wNum, 
+                          title: wNum === 0 ? "Prerequisites" : 
+                                 wNum === 1 ? "Foundations & RAG" : 
+                                 wNum === 2 ? "Advanced Retrieval" : 
+                                 "Agentic RAG" 
+                        };
+                        return (
+                          <button
+                            key={wNum}
+                            onClick={() => selectWeek(wNum)}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-[#F27D26] text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
+                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Category: AI Product Engineering */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => { setActiveTab('product-eng'); selectWeek(4); }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'product-eng' ? 'bg-[#F27D26]/10 border-[#F27D26]/30 text-[#F27D26]' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
+                    <Zap className="w-4 h-4" /> AI Product Engineering
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'product-eng' ? 'rotate-90' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {activeTab === 'product-eng' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-1 mt-1 px-1"
+                    >
+                      {[4, 5, 6].map(wNum => {
+                        const weekObj = weeksData.find(w => w.week === wNum) || { 
+                          week: wNum, 
+                          title: wNum === 4 ? "AI Product Eng I" : 
+                                 wNum === 5 ? "AI Product Eng II" : 
+                                 "AI Product Eng III" 
+                        };
+                        return (
+                          <button
+                            key={wNum}
+                            onClick={() => selectWeek(wNum)}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-[#F27D26] text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
+                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Category: LLM Red Teaming */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => { setActiveTab('red-teaming'); selectWeek(7); }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'red-teaming' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
+                    <Shield className="w-4 h-4" /> LLM Red Teaming
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'red-teaming' ? 'rotate-90' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {activeTab === 'red-teaming' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-1 mt-1 px-1"
+                    >
+                      {[7, 8, 9].map(wNum => {
+                        const weekObj = weeksData.find(w => w.week === wNum) || { 
+                          week: wNum, 
+                          title: wNum === 7 ? "Red Teaming I" : 
+                                 wNum === 8 ? "Red Teaming II" : 
+                                 "Red Teaming III" 
+                        };
+                        return (
+                          <button
+                            key={wNum}
+                            onClick={() => selectWeek(wNum)}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-red-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
+                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Category: Elite Model Engineering */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => { setActiveTab('elite-model'); selectWeek(10); }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'elite-model' ? 'bg-purple-500/10 border-purple-500/30 text-purple-500' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                >
+                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
+                    <Zap className="w-4 h-4 text-purple-500" /> Elite Model Engineering
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'elite-model' ? 'rotate-90' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {activeTab === 'elite-model' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-1 mt-1 px-1"
+                    >
+                      {[10, 11, 12, 13, 14].map(wNum => {
+                        const weekObj = weeksData.find(w => w.week === wNum) || { 
+                          week: wNum, 
+                          title: wNum === 10 ? "Model Eng I" : 
+                                 wNum === 11 ? "Model Eng II" : 
+                                 wNum === 12 ? "Model Eng III" :
+                                 wNum === 13 ? "LLMOps" : "Global Capstone"
+                        };
+                        return (
+                          <button
+                            key={wNum}
+                            onClick={() => selectWeek(wNum)}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-purple-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
+                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
@@ -664,6 +806,15 @@ export default function App() {
               <Shield className="w-4 h-4" /> LLM Red Teaming
             </button>
             <button
+              onClick={() => { setActiveTab('elite-model'); selectWeek(10); }}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'elite-model'
+                  ? 'bg-purple-500 text-black shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <Zap className="w-4 h-4" /> Elite Model Engineering
+            </button>
+            <button
               onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
               className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'foundations'
                   ? 'bg-orange-400 text-black shadow-[0_0_20px_rgba(251,146,60,0.3)]'
@@ -701,7 +852,7 @@ export default function App() {
             </button>
           </div>
 
-          {['foundations', 'product-eng', 'red-teaming'].includes(activeTab) && (
+          {['foundations', 'product-eng', 'red-teaming', 'elite-model'].includes(activeTab) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -711,18 +862,20 @@ export default function App() {
                 <h2 className="text-3xl font-black uppercase tracking-tighter italic">
                   Week {selectedWeek}: <span className="text-[#F27D26]">
                     {weeksData.find(w => w.week === selectedWeek)?.title || (
-                      selectedWeek === 1 ? "AI & LLM Foundations" :
-                        selectedWeek === 2 ? "Engineering Foundations" :
-                          selectedWeek === 3 ? "Embeddings & Vector Search" :
-                            selectedWeek === 4 ? "RAG Pipeline Mastery" :
-                              selectedWeek === 5 ? "AI Agents & Tool Use" :
-                                selectedWeek === 6 ? "Fine-tuning & Optimization" :
-                                  selectedWeek === 7 ? "LLM Security Foundations" :
-                                    selectedWeek === 8 ? "Advanced Red Teaming" :
-                                      selectedWeek === 9 ? "AI Product Strategy" :
-                                        selectedWeek === 10 ? "Capstone & Portfolio" :
-                                          selectedWeek === 11 ? "Internship Ready" :
-                                            selectedWeek === 12 ? "Job Ready" : "NEXUS Mission"
+                      selectedWeek === 0 ? "Prerequisites" :
+                      selectedWeek === 1 ? "Foundations & RAG" :
+                      selectedWeek === 2 ? "Advanced Retrieval" :
+                      selectedWeek === 3 ? "Agentic RAG" :
+                      selectedWeek === 4 ? "AI Product Eng I" :
+                      selectedWeek === 5 ? "AI Product Eng II" :
+                      selectedWeek === 6 ? "AI Product Eng III" :
+                      selectedWeek === 7 ? "Red Teaming I" :
+                      selectedWeek === 8 ? "Red Teaming II" :
+                      selectedWeek === 9 ? "Red Teaming III" :
+                      selectedWeek === 10 ? "Model Eng I" :
+                      selectedWeek === 11 ? "Model Eng II" :
+                      selectedWeek === 12 ? "Model Eng III" :
+                      selectedWeek === 13 ? "LLMOps" : "Global Capstone"
                     )}
                   </span>
                 </h2>
