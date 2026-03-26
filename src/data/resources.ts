@@ -554,5 +554,82 @@ export const resourceCategories: ResourceCategory[] = [
         type: "practice", free: true, tags: ["hackathons", "india", "competitions"]
       }
     ]
+  },
+  {
+    name: "Node.js AI Backend",
+    icon: "🟢",
+    description: "Essential libraries and guides for building AI backends with Node.js",
+    resources: [
+      {
+        title: "LangChain.js Documentation",
+        provider: "LangChain",
+        url: "https://js.langchain.com/",
+        description: "Official docs for the JavaScript/TypeScript version of LangChain. Primary stack for Node.js AI apps.",
+        type: "docs", free: true, tags: ["nodejs", "typescript", "langchain", "essential"]
+      },
+      {
+        title: "pgvector Node.js Guide",
+        provider: "pgvector",
+        url: "https://github.com/pgvector/pgvector-node",
+        description: "Guide to using pgvector (vector search) with Node.js. Direct integration for SQL-based RAG.",
+        type: "docs", free: true, tags: ["nodejs", "postgres", "vector-db", "sql"]
+      },
+      {
+        title: "Upstash Redis Docs",
+        provider: "Upstash",
+        url: "https://upstash.com/docs/redis",
+        description: "Serverless Redis for AI caching and rate limiting. Great free tier for developers.",
+        type: "docs", free: true, tags: ["redis", "caching", "serverless", "nodejs"]
+      }
+    ]
+  },
+  {
+    name: "AI System Design",
+    icon: "🏗️",
+    description: "Learn how to architect production-grade AI systems",
+    resources: [
+      {
+        title: "ByteByteGo — AI System Design",
+        provider: "ByteByteGo",
+        url: "https://bytebytego.com/",
+        description: "The gold standard for learning system design, now with specialized AI architecture content.",
+        type: "course", free: false, tags: ["system-design", "architecture", "essential"]
+      },
+      {
+        title: "Uber Engineering AI Blog",
+        provider: "Uber",
+        url: "https://www.uber.com/en-IN/blog/engineering/",
+        description: "Deep dives into Michelangelo, Uber's machine learning platform, and real-world AI scale.",
+        type: "community", free: true, tags: ["architecture", "case-study", "scale"]
+      },
+      {
+        title: "DoorDash Engineering Blog",
+        provider: "DoorDash",
+        url: "https://doordash.engineering/",
+        description: "Insights into logistics AI, recommendation engines, and production LLM serving.",
+        type: "community", free: true, tags: ["architecture", "llmops", "real-world"]
+      }
+    ]
+  },
+  {
+    name: "Practice & Benchmarks",
+    icon: "🎯",
+    description: "Hands-on prompting practice and model comparisons",
+    resources: [
+      {
+        title: "PromptingGuide.ai",
+        provider: "DAIR.AI",
+        url: "https://www.promptingguide.ai/",
+        description: "Comprehensive guide to prompt engineering. Covers zero-shot, few-shot, CoT, and more.",
+        type: "practice", free: true, tags: ["prompt-engineering", "reference", "essential"]
+      },
+      {
+        title: "LMSYS Chatbot Arena",
+        provider: "LMSYS",
+        url: "https://chat.lmsys.org/",
+        description: "Crowdsourced benchmark for LLMs. Compare models side-by-side and see live rankings.",
+        type: "practice", free: true, tags: ["benchmarks", "comparison", "practice"]
+      }
+    ]
   }
 ];
