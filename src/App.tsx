@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Shield, Terminal, Zap, BookOpen, Target, ChevronRight, Award, Lock, ExternalLink, AlertTriangle, Bug, Wrench, Search, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Activity, Shield, Terminal, Zap, BookOpen, Target, ChevronRight, Award, Lock, ExternalLink, AlertTriangle, Bug, Wrench, Search, Clock, CheckCircle2, Circle, Rocket } from "lucide-react";
 import { curriculum as fallbackCurriculum } from "./data/seedData";
 import { getTopics, getWeeks, Week, Topic } from "./data/curriculum";
 import { resourceCategories } from "./data/resources";
@@ -376,11 +376,10 @@ export default function App() {
       setActiveDay(firstDayOfWeek);
     }
     // Logic to switch tab based on new 42-day (6 week) roadmap
-    if ([1, 2, 3].includes(week)) setActiveTab('foundations');
-    else if ([4, 5, 6].includes(week)) setActiveTab('product-eng');
-    else if ([7, 8, 9].includes(week)) setActiveTab('red-teaming');
-    else if ([10, 11, 12].includes(week)) setActiveTab('elite-model');
-    else setActiveTab('product-eng'); // Fallback for weeks 13+
+    if ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(week)) setActiveTab('foundations');
+    else if ([15, 16, 17, 18, 19, 20, 21, 22, 23].includes(week)) setActiveTab('product-eng');
+    else if ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37].includes(week)) setActiveTab('elite-model');
+    else setActiveTab('foundations'); 
   };
 
   const startBuild = () => {
@@ -417,11 +416,21 @@ export default function App() {
             <Shield className="text-black w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tighter uppercase italic">NEXUS v6.0</h1>
+            <h1 className="text-xl font-bold tracking-tighter uppercase italic">NEXUS v7.0</h1>
             <p className="text-[10px] text-white/50 uppercase tracking-widest">Elite AI Product Engineer + LLM Red Team Mentor</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {selectedWeek >= 6 && selectedWeek <= 14 && (
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+            >
+              <Rocket className="w-4 h-4 text-blue-400 animate-bounce" />
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Internship Apply Zone</span>
+            </motion.div>
+          )}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10" title="Daily Persistence Streak">
             <Zap className={`w-3 h-3 ${streak > 0 ? 'text-yellow-400' : 'text-white/20'}`} />
             <span className="text-[10px] uppercase font-bold tracking-wider">{streak} Day Streak</span>
@@ -506,14 +515,14 @@ export default function App() {
             <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">Mission Syllabus</h3>
             
             <div className="space-y-2">
-              {/* Category: Foundations */}
+              {/* Category: Phase 0 - Internship */}
               <div className="space-y-1">
                 <button
                   onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'foundations' ? 'bg-orange-400/10 border-orange-400/30 text-orange-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'foundations' ? 'bg-blue-400/10 border-blue-400/30 text-blue-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
                 >
                   <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Activity className="w-4 h-4" /> Foundations
+                    <Rocket className="w-4 h-4" /> 🏗️ Phase 0: AI Backend
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'foundations' ? 'rotate-90' : ''}`} />
                 </button>
@@ -526,19 +535,16 @@ export default function App() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-1 mt-1 px-1"
                     >
-                      {[0, 1, 2, 3].map(wNum => {
+                      {Array.from({ length: 15 }, (_, i) => i).map(wNum => {
                         const weekObj = weeksData.find(w => w.week === wNum) || { 
                           week: wNum, 
-                          title: wNum === 0 ? "Prerequisites" : 
-                                 wNum === 1 ? "Foundations & RAG" : 
-                                 wNum === 2 ? "Advanced Retrieval" : 
-                                 "Agentic RAG" 
+                          title: wNum === 0 ? "Prerequisites" : wNum === 14 ? "Capstone" : `Internship Week ${wNum}` 
                         };
                         return (
                           <button
                             key={wNum}
                             onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-[#F27D26] text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-blue-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
                           >
                             <div className="flex items-center gap-3">
                               <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
@@ -552,14 +558,14 @@ export default function App() {
                 </AnimatePresence>
               </div>
 
-              {/* Category: AI Product Engineering */}
+              {/* Category: Phase 1-3 - Original */}
               <div className="space-y-1">
                 <button
-                  onClick={() => { setActiveTab('product-eng'); selectWeek(4); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'product-eng' ? 'bg-[#F27D26]/10 border-[#F27D26]/30 text-[#F27D26]' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
+                  onClick={() => { setActiveTab('product-eng'); selectWeek(15); }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'product-eng' ? 'bg-orange-400/10 border-orange-400/30 text-orange-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
                 >
                   <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Zap className="w-4 h-4" /> AI Product Engineering
+                    <Zap className="w-4 h-4" /> 🧩 Phase 1-3: Original
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'product-eng' ? 'rotate-90' : ''}`} />
                 </button>
@@ -572,18 +578,16 @@ export default function App() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-1 mt-1 px-1"
                     >
-                      {[4, 5, 6].map(wNum => {
+                      {Array.from({ length: 9 }, (_, i) => i + 15).map(wNum => {
                         const weekObj = weeksData.find(w => w.week === wNum) || { 
                           week: wNum, 
-                          title: wNum === 4 ? "AI Product Eng I" : 
-                                 wNum === 5 ? "AI Product Eng II" : 
-                                 "AI Product Eng III" 
+                          title: `Elite Week ${wNum - 14}` 
                         };
                         return (
                           <button
                             key={wNum}
                             onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-[#F27D26] text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-orange-400 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
                           >
                             <div className="flex items-center gap-3">
                               <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
@@ -597,59 +601,14 @@ export default function App() {
                 </AnimatePresence>
               </div>
 
-              {/* Category: LLM Red Teaming */}
+              {/* Category: Phase 4-5 - Elite */}
               <div className="space-y-1">
                 <button
-                  onClick={() => { setActiveTab('red-teaming'); selectWeek(7); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'red-teaming' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
-                >
-                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Shield className="w-4 h-4" /> LLM Red Teaming
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'red-teaming' ? 'rotate-90' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {activeTab === 'red-teaming' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-1 mt-1 px-1"
-                    >
-                      {[7, 8, 9].map(wNum => {
-                        const weekObj = weeksData.find(w => w.week === wNum) || { 
-                          week: wNum, 
-                          title: wNum === 7 ? "Red Teaming I" : 
-                                 wNum === 8 ? "Red Teaming II" : 
-                                 "Red Teaming III" 
-                        };
-                        return (
-                          <button
-                            key={wNum}
-                            onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-red-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
-                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Category: Elite Model Engineering */}
-              <div className="space-y-1">
-                <button
-                  onClick={() => { setActiveTab('elite-model'); selectWeek(10); }}
+                  onClick={() => { setActiveTab('elite-model'); selectWeek(24); }}
                   className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'elite-model' ? 'bg-purple-500/10 border-purple-500/30 text-purple-500' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
                 >
                   <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Zap className="w-4 h-4 text-purple-500" /> Elite Model Engineering
+                    <Activity className="w-4 h-4" /> ⚡ Phase 4-5: Elite
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'elite-model' ? 'rotate-90' : ''}`} />
                 </button>
@@ -662,13 +621,10 @@ export default function App() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-1 mt-1 px-1"
                     >
-                      {[10, 11, 12, 13, 14].map(wNum => {
+                      {Array.from({ length: 14 }, (_, i) => i + 24).map(wNum => {
                         const weekObj = weeksData.find(w => w.week === wNum) || { 
                           week: wNum, 
-                          title: wNum === 10 ? "Model Eng I" : 
-                                 wNum === 11 ? "Model Eng II" : 
-                                 wNum === 12 ? "Model Eng III" :
-                                 wNum === 13 ? "LLMOps" : "Global Capstone"
+                          title: `Model Eng Week ${wNum - 23}` 
                         };
                         return (
                           <button

@@ -6,106 +6,60 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
-const weeks = [
-  { id: 0, title: "Week 0: Prerequisites" },
-  { id: 1, title: "Week 1: Foundations & RAG" },
-  { id: 2, title: "Week 2: Advanced Retrieval" },
-  { id: 3, title: "Week 3: Agentic RAG" },
-  { id: 4, title: "Week 4: AI Product Eng I" },
-  { id: 5, title: "Week 5: AI Product Eng II" },
-  { id: 6, title: "Week 6: AI Product Eng III" },
-  { id: 7, title: "Week 7: Red Teaming I" },
-  { id: 8, title: "Week 8: Red Teaming II" },
-  { id: 9, title: "Week 9: Red Teaming III" },
-  { id: 10, title: "Week 10: Model Eng I" },
-  { id: 11, title: "Week 11: Model Eng II" },
-  { id: 12, title: "Week 12: Model Eng III" },
-  { id: 13, title: "Week 13: LLMOps" },
-  { id: 14, title: "Week 14: Global Capstone" },
-];
+const weeks = Array.from({ length: 38 }, (_, i) => {
+    let title = `Week ${i}`;
+    if (i === 0) title = "Week 0: Prerequisites";
+    else if (i < 14) title = `Week ${i}: Internship Path`;
+    else if (i === 14) title = "Week 14: Internship Capstone";
+    else if (i < 24) title = `Week ${i}: Elite Product Eng`;
+    else title = `Week ${i}: Elite Model Eng`;
+    return { id: i, title: title };
+});
 
 async function main() {
-  console.log('--- NEXUS Final Seeding ---');
+  console.log('--- NEXUS v7.0 Final Seeding ---');
 
   try {
-    console.log('Seeding Weeks...');
+    // 1. Clean existing data (Optional but recommended for major v7.0 shift)
+    console.log('Clearing old missions...');
+    await prisma.topic.deleteMany({});
+    await prisma.week.deleteMany({});
+    await prisma.project.deleteMany({});
+    await prisma.graduationChecklist.deleteMany({});
+
+    // 2. Seed Weeks
+    console.log(`Seeding ${weeks.length} Weeks...`);
     for (const week of weeks) {
-      await prisma.week.upsert({
-        where: { id: week.id },
-        update: { title: week.title },
-        create: { id: week.id, title: week.title },
-      });
+      await prisma.week.create({ data: week });
     }
 
+    // 3. Seed Topics
     console.log(`Seeding ${curriculum.length} Topics...`);
     for (const topic of curriculum) {
-      // @ts-ignore
-      const topicId = topic.id || topic.day;
-      await prisma.topic.upsert({
-        where: { day: topic.day },
-        update: {
-          title: topic.title,
-          skill: topic.skill,
-          steps: topic.steps,
-          proTip: topic.proTip,
-          detailedSteps: topic.detailedSteps as any,
-          difficulty: topic.difficulty,
-          systemDesign: topic.systemDesign,
-          miniProject: topic.miniProject,
-          mediumProject: topic.mediumProject,
-          bigProject: topic.bigProject,
-          testing: topic.testing,
-          audit: topic.audit,
-          resource: topic.resource,
-          redTeamTask: topic.redTeamTask,
-          gapFixed: topic.gapFixed,
-        },
-        create: {
-          id: topicId,
-          day: topic.day,
-          weekId: topic.weekId,
-          title: topic.title,
-          skill: topic.skill,
-          hoursPerDay: topic.hoursPerDay,
-          difficulty: topic.difficulty,
-          systemDesign: topic.systemDesign,
-          miniProject: topic.miniProject,
-          mediumProject: topic.mediumProject,
-          bigProject: topic.bigProject,
-          testing: topic.testing,
-          audit: topic.audit,
-          resource: topic.resource,
-          redTeamTask: topic.redTeamTask,
-          gapFixed: topic.gapFixed,
-          steps: topic.steps,
-          proTip: topic.proTip,
-          detailedSteps: topic.detailedSteps as any,
-        },
-      });
+      await prisma.topic.create({ data: {
+        ...topic,
+        detailedSteps: topic.detailedSteps as any
+      }});
     }
 
+    // 4. Seed Projects
     console.log('Seeding Project Ladder...');
-    for (const [milestone, project] of Object.entries(projectLadder) as [string, { mini: string, medium: string, big: string }][]) {
-      const milestoneNum = parseInt(milestone.replace('milestone', ''));
-      await prisma.project.upsert({
-        where: { milestone: milestoneNum },
-        update: { mini: project.mini, medium: project.medium, big: project.big },
-        create: { id: milestoneNum, milestone: milestoneNum, mini: project.mini, medium: project.medium, big: project.big },
-      });
+    for (const project of projectLadder) {
+      await prisma.project.create({ data: project });
     }
 
+    // 5. Seed Graduation Checklist
     console.log('Seeding Graduation Checklist...');
-    for (const [category, items] of Object.entries(graduationChecklist) as [string, string[]][]) {
-      await prisma.graduationChecklist.upsert({
-        where: { category: category },
-        update: { items: items },
-        create: { category: category, items: items },
+    for (const [category, items] of Object.entries(graduationChecklist)) {
+      await prisma.graduationChecklist.create({
+        data: { category, items }
       });
     }
 
-    console.log('--- Seeding Complete: NEXUS is Ready! ---');
-  } catch (err) {
-    console.error('Seeding Failed:', err);
+    console.log('✅ NEXUS v7.0 Seeded Successfully!');
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
