@@ -23,7 +23,7 @@ const weeks = [
 
 async function main() {
   console.log('--- NEXUS Final Seeding ---');
-  
+
   try {
     console.log('Seeding Weeks...');
     for (const week of weeks) {
@@ -36,7 +36,7 @@ async function main() {
 
     console.log(`Seeding ${curriculum.length} Topics...`);
     for (const topic of curriculum) {
-       // @ts-ignore
+      // @ts-ignore
       const topicId = topic.id || topic.day;
       await prisma.topic.upsert({
         where: { day: topic.day },
@@ -82,19 +82,17 @@ async function main() {
     }
 
     console.log('Seeding Project Ladder...');
-    for (const [milestone, project] of Object.entries(projectLadder)) {
-        const milestoneNum = parseInt(milestone.replace('milestone', ''));
-        // @ts-ignore
-        const med = project.medium;
-        await prisma.project.upsert({
-          where: { milestone: milestoneNum },
-          update: { mini: project.mini, medium: med, big: project.big },
-          create: { id: milestoneNum, milestone: milestoneNum, mini: project.mini, medium: med, big: project.big },
-        });
+    for (const [milestone, project] of Object.entries(projectLadder) as [string, { mini: string, medium: string, big: string }][]) {
+      const milestoneNum = parseInt(milestone.replace('milestone', ''));
+      await prisma.project.upsert({
+        where: { milestone: milestoneNum },
+        update: { mini: project.mini, medium: project.medium, big: project.big },
+        create: { id: milestoneNum, milestone: milestoneNum, mini: project.mini, medium: project.medium, big: project.big },
+      });
     }
 
     console.log('Seeding Graduation Checklist...');
-    for (const [category, items] of Object.entries(graduationChecklist)) {
+    for (const [category, items] of Object.entries(graduationChecklist) as [string, string[]][]) {
       await prisma.graduationChecklist.upsert({
         where: { category: category },
         update: { items: items },

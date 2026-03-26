@@ -1,23 +1,23 @@
 export interface Topic {
-  id: number;
-  day: number;
-  weekId: number;
-  title: string;
-  skill: string;
-  hoursPerDay: string;
-  difficulty: string;
-  systemDesign: string;
-  miniProject: string;
-  mediumProject: string | null;
-  bigProject: string | null;
-  testing: string;
-  audit: string;
-  resource: string;
-  redTeamTask: string;
-  gapFixed: string | null;
-  steps: string[];
-  proTip: string | null;
-  detailedSteps: { title: string; points: string[] }[] | null;
+    id: number;
+    day: number;
+    weekId: number;
+    title: string;
+    skill: string;
+    hoursPerDay: string;
+    difficulty: string;
+    systemDesign: string;
+    miniProject: string;
+    mediumProject: string | null;
+    bigProject: string | null;
+    testing: string;
+    audit: string;
+    resource: string;
+    redTeamTask: string;
+    gapFixed: string | null;
+    steps: string[];
+    proTip: string | null;
+    detailedSteps: { title: string; points: string[] }[] | null;
 }
 
 export interface Week {
@@ -25,6 +25,9 @@ export interface Week {
     title: string;
     week: number;
 }
+
+// Dummy export for compatibility - actual data in seedData.ts
+export const curriculum: Topic[] = [];
 
 export const getWeeks = async (): Promise<Week[]> => {
     try {

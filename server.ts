@@ -5,6 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Groq from "groq-sdk";
 import { PrismaClient } from "@prisma/client";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 
 const prisma = new PrismaClient();
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +17,22 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Security Hardening
+  app.use(helmet({
+    contentSecurityPolicy: false, // Vite handles this in dev, set to true if you customize CSP
+  }));
+
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: "Bhai, itne jaldi jaldi requests mat bhej. Rate limit hit ho gaya hai!",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Apply rate limiter to all API routes
+  app.use("/api/", limiter);
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {
@@ -110,6 +128,37 @@ async function startServer() {
     }
   });
 
+  // Submit Red Team Report
+  app.post("/api/reports", async (req, res) => {
+    try {
+      const { topicDay, completed, redTeamReportUrl } = req.body;
+      const user = await prisma.user.findFirst({ where: { name: "Shubham" } });
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const report = await prisma.topicProgress.upsert({
+        where: {
+          userId_topicDay: {
+            userId: user.id,
+            topicDay
+          }
+        },
+        update: {
+          completed,
+          redTeamReportUrl
+        },
+        create: {
+          userId: user.id,
+          topicDay,
+          completed,
+          redTeamReportUrl
+        }
+      });
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit report" });
+    }
+  });
+
   // Get Chat Sessions
   app.get("/api/chat-sessions", async (req, res) => {
     try {
@@ -127,7 +176,7 @@ async function startServer() {
   app.post("/api/chat", async (req, res) => {
     try {
       const { prompt, sessionId, currentTopic } = req.body;
-  
+
       let dynamicContext = "";
       if (currentTopic) {
         dynamicContext = `[CURRENT CONTEXT: User is on Day ${currentTopic.day} (Week ${currentTopic.week}) - Project: "${currentTopic.title}". Task: ${currentTopic.miniProject}. Bhai, focus your guidance on THIS specific project and milestone!]`;
@@ -172,7 +221,7 @@ async function startServer() {
       }
 
       const groq = new Groq({ apiKey });
-      
+
       const systemInstruction = `
         You are the NEXUS v6.0 AI Assistant - an Elite Senior AI Product Engineer & LLM Red Team Mentor.
         Your mission is to guide Shubham through a hardcore 70-day curriculum focused EXCLUSIVELY on:

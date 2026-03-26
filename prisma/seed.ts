@@ -1,12 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 import { curriculum, projectLadder, graduationChecklist } from '../src/data/seedData';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const prisma = new PrismaClient();
 
 // Load .env from root
 dotenv.config({ path: path.join(__dirname, '../.env') });
-
-const prisma = new PrismaClient();
 
 const weeks = [
   { id: 1, title: "Foundations" },
@@ -86,7 +91,7 @@ async function main() {
     });
   }
 
-  for (const [milestone, project] of Object.entries(projectLadder)) {
+  for (const [milestone, project] of Object.entries(projectLadder) as [string, { mini: string, medium: string, big: string }][]) {
     const milestoneNum = parseInt(milestone.replace('milestone', ''));
     await prisma.project.upsert({
       where: { milestone: milestoneNum },
@@ -101,7 +106,7 @@ async function main() {
     });
   }
 
-  for (const [category, items] of Object.entries(graduationChecklist)) {
+  for (const [category, items] of Object.entries(graduationChecklist) as [string, string[]][]) {
     await prisma.graduationChecklist.upsert({
       where: { category: category },
       update: {},

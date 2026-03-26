@@ -10,15 +10,16 @@ import { agentSecretCategories } from "./data/aiAgentSecrets";
 function MissionChecklistItem({ point, id }: { point: string, id: string }) {
   const stepKey = `nexus-step-${id}`;
   const [isDone, setIsDone] = useState(() => localStorage.getItem(stepKey) === 'true');
-  
+
   const togglePoint = () => {
     const newVal = !isDone;
     setIsDone(newVal);
     localStorage.setItem(stepKey, String(newVal));
+    window.dispatchEvent(new Event('storage-update'));
   };
 
   return (
-    <div 
+    <div
       onClick={togglePoint}
       className={`flex items-start gap-3 p-2.5 rounded-xl transition-all cursor-pointer border ${isDone ? 'bg-[#F27D26]/10 border-[#F27D26]/30' : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'}`}
     >
@@ -39,11 +40,12 @@ export default function App() {
   const [weeksData, setWeeksData] = useState<Week[]>([]);
   const [health, setHealth] = useState<{ status: string; message: string; timestamp: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedWeek, setSelectedWeek] = useState(1);
-  const [activeDay, setActiveDay] = useState(0); // Standardized to start at 0 per request
-  const [activeTab, setActiveTab] = useState<'curriculum' | 'resources' | 'debugging' | 'secrets'>('curriculum');
+  const [selectedWeek, setSelectedWeek] = useState(3);
+  const [activeDay, setActiveDay] = useState(15); // Start at Day 15 (Week 3) per request for AI Product Eng Priority
+  const [activeTab, setActiveTab] = useState<'foundations' | 'product-eng' | 'red-teaming' | 'resources' | 'debugging' | 'secrets'>('product-eng');
   const [viewMode, setViewMode] = useState<'dashboard' | 'mission'>('dashboard');
 
+  const [userName, setUserName] = useState("Shubham B.");
   const [points, setPoints] = useState(0);
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
@@ -53,7 +55,7 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'nexus', text: string }[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
-  
+
   // Study Timer States
   const [timeLeft, setTimeLeft] = useState(7200); // 2 hours in seconds
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -77,18 +79,99 @@ export default function App() {
   };
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportData, setReportData] = useState({ title: "", category: "LLM01: Prompt Injection", poc: "", remediation: "" });
-  const [submittedReports, setSubmittedReports] = useState<{id: number, title: string, date: string}[]>([]);
+  const [submittedReports, setSubmittedReports] = useState<{ id: number, title: string, date: string }[]>([]);
 
   const [streak, setStreak] = useState(5);
   const [skills, setSkills] = useState({
-    engineering: 75,
-    security: 40,
-    rag: 60,
-    agents: 30,
-    "prompt-eng": 50,
-    product: 20,
-    ops: 20
+    engineering: 5,
+    security: 0,
+    rag: 0,
+    agents: 0,
+    "prompt-eng": 5,
+    product: 0,
+    ops: 0
   });
+  const [storageUpdateTrigger, setStorageUpdateTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleStorage = () => setStorageUpdateTrigger(prev => prev + 1);
+    window.addEventListener('storage-update', handleStorage);
+    return () => window.removeEventListener('storage-update', handleStorage);
+  }, []);
+
+  // Dynamic Points (XP) and Streak Calculation
+  useEffect(() => {
+    const keys = Object.keys(localStorage);
+    const completedSteps = keys.filter(k => k.startsWith('nexus-step-') && localStorage.getItem(k) === 'true');
+    
+    // Each step is 10 XP
+    let xp = completedSteps.length * 10;
+    
+    // Each submitted report is 50 XP
+    const completedReports = keys.filter(k => k.startsWith('nexus-report-') && localStorage.getItem(k) === 'true');
+    xp += completedReports.length * 50;
+    
+    // Special Day 7 Capstone bonus
+    if (keys.some(k => k.startsWith('nexus-step-7-') && localStorage.getItem(k) === 'true')) {
+      xp += 1000;
+    }
+    
+    setPoints(xp);
+
+    // Dynamic Skills
+    const newSkills = {
+      engineering: 5,
+      security: 0,
+      rag: 0,
+      agents: 0,
+      "prompt-eng": 5,
+      product: 0,
+      ops: 0
+    };
+
+    curriculum.forEach(t => {
+      const isDayDone = keys.some(k => k.startsWith(`nexus-step-${t.day}-`) && localStorage.getItem(k) === 'true');
+      if (isDayDone) {
+        const skillName = t.skill.toLowerCase();
+        if (skillName.includes('engineering')) newSkills.engineering += 8;
+        else if (skillName.includes('security') || skillName.includes('red team')) newSkills.security += 12;
+        else if (skillName.includes('rag')) newSkills.rag += 10;
+        else if (skillName.includes('agent')) newSkills.agents += 10;
+        else if (skillName.includes('prompt')) newSkills["prompt-eng"] += 8;
+        else if (skillName.includes('product')) newSkills.product += 5;
+        else if (skillName.includes('ops') || skillName.includes('uv')) newSkills.ops += 5;
+      }
+    });
+
+    Object.keys(newSkills).forEach(k => {
+      if (newSkills[k as keyof typeof newSkills] > 100) newSkills[k as keyof typeof newSkills] = 100;
+    });
+    setSkills(newSkills);
+
+    // Streak Logic
+    const lastDate = localStorage.getItem('nexus-last-active');
+    const today = new Date().toDateString();
+    let currentStreak = parseInt(localStorage.getItem('nexus-streak') || '0');
+    
+    if (lastDate) {
+      if (lastDate === today) {
+        // Already active today, streak is current
+      } else {
+        const lastDateObj = new Date(lastDate);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (lastDateObj.toDateString() === yesterday.toDateString()) {
+          // It was yesterday, streak continues (already incremented on report sub or will be)
+        } else {
+          // Break streak if more than 24h gap
+          currentStreak = 0;
+          localStorage.setItem('nexus-streak', '0');
+        }
+      }
+    }
+    setStreak(currentStreak);
+  }, [curriculum, activeDay, storageUpdateTrigger]);
 
   const handleChat = async (e: FormEvent) => {
     e.preventDefault();
@@ -96,7 +179,7 @@ export default function App() {
 
     const userMsg = { role: 'user' as const, text: chatInput };
     setChatMessages(prev => [...prev, userMsg]);
-    
+
     const currentInput = chatInput;
     setChatInput("");
     setIsChatLoading(true);
@@ -105,15 +188,15 @@ export default function App() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          prompt: currentInput, 
+        body: JSON.stringify({
+          prompt: currentInput,
           sessionId: chatSessionId,
-          currentTopic: {
+          currentTopic: currentTopic ? {
             day: currentTopic.day,
             weekId: currentTopic.weekId,
             title: currentTopic.title,
             miniProject: currentTopic.miniProject
-          }
+          } : undefined
         }),
       });
       const data = await response.json();
@@ -143,6 +226,17 @@ export default function App() {
     }
   };
 
+  const runTerminalCommand = (cmd: string) => {
+    let prompt = "";
+    if (cmd === 'EXPLAIN') prompt = "Bhai, ye concept detail mein samjha do: ";
+    else if (cmd === 'DEBUG') prompt = "Mera code debug karo, error ye hai: ";
+    else if (cmd === 'REVIEW') prompt = "Best practices checklist ke according code review karo: ";
+    
+    setChatInput(prompt);
+    setBuildLogs(prev => [...prev, `[USER] > ${cmd} activated. AI responding...`]);
+  };
+
+
   const submitReport = async (e: FormEvent) => {
     e.preventDefault();
     if (!reportData.title || !reportData.poc) return;
@@ -157,7 +251,7 @@ export default function App() {
           redTeamReportUrl: reportData.poc // Simplified for now
         })
       });
-      
+
       if (response.ok) {
         const newReport = {
           id: Date.now(),
@@ -166,13 +260,31 @@ export default function App() {
         };
 
         setSubmittedReports(prev => [newReport, ...prev]);
-        const newPoints = points + 50;
-        setPoints(newPoints);
-        syncStats({ points: newPoints });
         
+        // Save report completion to localStorage
+        localStorage.setItem(`nexus-report-${activeDay}`, 'true');
+        
+        // Streak Logic: Check last activity
+        const lastActive = localStorage.getItem('nexus-last-active');
+        const today = new Date().toDateString();
+        let newStreak = streak;
+        
+        if (lastActive !== today) {
+          newStreak = streak + 1;
+          localStorage.setItem('nexus-streak', String(newStreak));
+          localStorage.setItem('nexus-last-active', today);
+        }
+
+        window.dispatchEvent(new Event('storage-update'));
+        syncStats({ points: points + 50, streak: newStreak });
+
         setIsReportModalOpen(false);
         setReportData({ title: "", category: "LLM01: Prompt Injection", poc: "", remediation: "" });
         setBuildLogs(prev => [...prev, `[NEXUS] Bhai, gazab! Nayi report submit ho gayi: ${reportData.title}. +50 XP!`]);
+        
+        // Reset timer on mission success
+        setTimeLeft(7200);
+        setIsTimerRunning(false);
       }
     } catch (error) {
       console.error("Report submission failed:", error);
@@ -263,12 +375,16 @@ export default function App() {
     if (typeof firstDayOfWeek === 'number') {
       setActiveDay(firstDayOfWeek);
     }
+    // Logic to switch tab if week is selected from a different category
+    if ([1, 2].includes(week)) setActiveTab('foundations');
+    else if ([7, 8].includes(week)) setActiveTab('red-teaming');
+    else setActiveTab('product-eng');
   };
 
   const startBuild = () => {
     setIsBuilding(true);
     setBuildLogs(["[SYSTEM] Initializing build process...", "[SYSTEM] Checking environment variables...", "[SYSTEM] Verifying Node.js version..."]);
-    
+
     const logs = [
       "[NEXUS] Bhai, backend setup ho raha hai...",
       "[NEXUS] Installing dependencies: express, typescript...",
@@ -304,14 +420,14 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-            <Zap className="w-3 h-3 text-yellow-400" />
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10" title="Daily Persistence Streak">
+            <Zap className={`w-3 h-3 ${streak > 0 ? 'text-yellow-400' : 'text-white/20'}`} />
             <span className="text-[10px] uppercase font-bold tracking-wider">{streak} Day Streak</span>
           </div>
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-            <div className={`w-2 h-2 rounded-full ${health?.status === 'ok' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-[10px] uppercase font-medium tracking-wider">
-              {loading ? 'Checking...' : health?.status === 'ok' ? 'System Online' : 'System Offline'}
+            <div className={`w-2 h-2 rounded-full ${health?.status === 'ok' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-[10px] uppercase font-bold tracking-wider">
+              {loading ? 'SYNCING...' : health?.status === 'ok' ? 'NEXUS TERMINAL CONNECTED' : 'OFFLINE'}
             </span>
           </div>
           <div className="flex items-center gap-2 px-4 py-1.5 bg-[#F27D26]/10 border border-[#F27D26]/30 rounded-full">
@@ -333,7 +449,7 @@ export default function App() {
                 {isTimerRunning ? 'MISSION ACTIVE' : 'STANDBY'}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-white/5 rounded-lg border border-white/5">
                 <div className="text-[10px] text-white/40 uppercase font-bold mb-1">Total XP</div>
@@ -355,13 +471,13 @@ export default function App() {
                 {formatTime(timeLeft)}
               </div>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setIsTimerRunning(!isTimerRunning)}
                   className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${isTimerRunning ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-[#F27D26]/20 text-[#F27D26] hover:bg-[#F27D26]/30'}`}
                 >
                   {isTimerRunning ? 'Pause' : 'Start Mission'}
                 </button>
-                <button 
+                <button
                   onClick={() => { setTimeLeft(7200); setIsTimerRunning(false); }}
                   className="px-3 py-1.5 bg-white/5 text-white/40 hover:bg-white/10 rounded text-[10px] font-bold uppercase"
                 >
@@ -376,7 +492,7 @@ export default function App() {
                 <span className="text-[#F27D26]">{Math.floor((points % 1000) / 10)}%</span>
               </div>
               <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-[#F27D26] to-[#E55B13] transition-all duration-1000"
                   style={{ width: `${(points % 1000) / 10}%` }}
                 />
@@ -385,114 +501,137 @@ export default function App() {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Curriculum Flow</h3>
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">
+              {activeTab === 'foundations' ? 'Foundations Flow' : 
+               activeTab === 'red-teaming' ? 'Red Team Flow' : 
+               activeTab === 'product-eng' ? 'Engineering Flow' : 'General Flow'}
+            </h3>
             <div className="space-y-1">
-            <div className="space-y-1">
-            {(weeksData.length > 0 ? weeksData : [
-              { id: 1, title: "Foundations", week: 1 },
-              { id: 2, title: "Engineering", week: 2 },
-              { id: 3, title: "Embeddings", week: 3 },
-              { id: 4, title: "RAG Pipeline", week: 4 },
-              { id: 5, title: "Agents & Tools", week: 5 },
-              { id: 6, title: "Fine-tuning", week: 6 },
-              { id: 7, title: "Security", week: 7 },
-              { id: 8, title: "Red Teaming", week: 8 },
-              { id: 9, title: "Strategy", week: 9 },
-              { id: 10, title: "Capstone", week: 10 },
-              { id: 11, title: "Internship Ready", week: 11 },
-              { id: 12, title: "Job Ready", week: 12 },
-            ]).map(week => (
-              <button
-                key={week.id}
-                onClick={() => selectWeek(week.week)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center justify-between group ${
-                  selectedWeek === week.week 
-                    ? 'bg-[#F27D26] text-black font-bold' 
-                    : 'bg-white/5 text-white/60 hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs opacity-50">W{week.week}</span>
-                  <span className="text-sm uppercase tracking-tight">
-                    {week.title}
-                  </span>
-                </div>
-                {selectedWeek === week.week && <ChevronRight className="w-4 h-4" />}
-              </button>
-            ))}
-            </div>
-            </div>
-          </div>
-            
-            <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
-              <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">NEXUS Commands</h3>
-              <div className="grid grid-cols-2 gap-1 px-2">
-                {['EXPLAIN', 'DEBUG', 'REVIEW', 'MORNING PLAN', 'STUCK', 'RED TEAM', 'DESIGN', 'POINTS', 'CAREER', 'PORTFOLIO'].map(cmd => (
-                  <button 
-                    key={cmd}
-                    onClick={() => setChatInput("/" + cmd.toLowerCase().replace(" ", "-") + " ")}
-                    className="text-[9px] text-left text-white/40 hover:text-[#F27D26] transition-colors uppercase font-mono"
+              <div className="space-y-1">
+                {(weeksData.length > 0 ? weeksData : [
+                  { id: 1, title: "Foundations", week: 1 },
+                  { id: 2, title: "Engineering", week: 2 },
+                  { id: 3, title: "Embeddings", week: 3 },
+                  { id: 4, title: "RAG Pipeline", week: 4 },
+                  { id: 5, title: "Agents & Tools", week: 5 },
+                  { id: 6, title: "Fine-tuning", week: 6 },
+                  { id: 7, title: "Security", week: 7 },
+                  { id: 8, title: "Red Teaming", week: 8 },
+                  { id: 9, title: "Strategy", week: 9 },
+                  { id: 10, title: "Capstone", week: 10 },
+                  { id: 11, title: "Internship Ready", week: 11 },
+                  { id: 12, title: "Job Ready", week: 12 },
+                ]).filter(week => {
+                  if (activeTab === 'foundations') return [1, 2].includes(week.week);
+                  if (activeTab === 'red-teaming') return [7, 8].includes(week.week);
+                  if (activeTab === 'product-eng') return [3, 4, 5, 6, 9, 10, 11, 12].includes(week.week);
+                  return true; // Show all if in other tabs or fallback
+                }).map(week => (
+                  <button
+                    key={week.id}
+                    onClick={() => selectWeek(week.week)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === week.week
+                        ? 'bg-[#F27D26] text-black font-bold'
+                        : 'bg-white/5 text-white/60 hover:bg-white/10'
+                      }`}
                   >
-                    &gt; {cmd}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs opacity-50">W{week.week}</span>
+                      <span className="text-sm uppercase tracking-tight">
+                        {week.title}
+                      </span>
+                    </div>
+                    {selectedWeek === week.week && <ChevronRight className="w-4 h-4" />}
                   </button>
                 ))}
               </div>
             </div>
+          </div>
 
-            <div className="pt-4 border-t border-white/10 mt-4 space-y-4">
-              <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Skill Radar</h3>
-              <div className="px-2 space-y-3">
-                {Object.entries(skills).map(([skill, value]) => (
-                  <div key={skill} className="space-y-1">
-                    <div className="flex justify-between text-[9px] uppercase font-mono text-white/40">
-                      <span>{skill}</span>
-                      <span>{value}%</span>
-                    </div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${value}%` }}
-                        className="h-full bg-[#F27D26]"
-                      />
-                    </div>
+          <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">NEXUS Commands</h3>
+            <div className="grid grid-cols-2 gap-1 px-2">
+              {['EXPLAIN', 'DEBUG', 'REVIEW', 'MORNING PLAN', 'STUCK', 'RED TEAM', 'DESIGN', 'POINTS', 'CAREER', 'PORTFOLIO'].map(cmd => (
+                <button
+                  key={cmd}
+                  onClick={() => runTerminalCommand(cmd)}
+                  className="text-[9px] text-left text-white/40 hover:text-[#F27D26] transition-colors uppercase font-mono"
+                >
+                  &gt; {cmd}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/10 mt-4 space-y-4">
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Skill Radar</h3>
+            <div className="px-2 space-y-3">
+              {Object.entries(skills).map(([skill, value]) => (
+                <div key={skill} className="space-y-1">
+                  <div className="flex justify-between text-[9px] uppercase font-mono text-white/40">
+                    <span>{skill}</span>
+                    <span>{value}%</span>
                   </div>
-                ))}
-              </div>
+                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${value}%` }}
+                      className="h-full bg-[#F27D26]"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
-              <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Career & Reports</h3>
-              <button className="w-full text-left px-4 py-3 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 flex items-center gap-3 transition-all">
-                <Award className="w-4 h-4" />
-                <span className="text-sm uppercase tracking-tight">Portfolio</span>
-              </button>
-              
-              <div className="space-y-1">
-                <div className="px-4 py-2 text-[10px] font-bold text-red-500 uppercase tracking-widest">Recent Reports</div>
-                {submittedReports.length === 0 ? (
-                  <div className="px-4 py-2 text-[10px] text-white/20 italic italic">No reports submitted yet.</div>
-                ) : (
-                  submittedReports.slice(0, 3).map(report => (
-                    <div key={report.id} className="mx-2 p-2 bg-red-500/5 border border-red-500/10 rounded text-[10px] flex justify-between items-center">
-                      <span className="truncate pr-2">{report.title}</span>
-                      <span className="opacity-30">{report.date}</span>
-                    </div>
-                  ))
-                )}
-              </div>
+          <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Career & Reports</h3>
+            <button className="w-full text-left px-4 py-3 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 flex items-center gap-3 transition-all">
+              <Award className="w-4 h-4" />
+              <span className="text-sm uppercase tracking-tight">Portfolio</span>
+            </button>
+
+            <div className="space-y-1">
+              <div className="px-4 py-2 text-[10px] font-bold text-red-500 uppercase tracking-widest">Recent Reports</div>
+              {submittedReports.length === 0 ? (
+                <div className="px-4 py-6 text-center space-y-2 bg-white/5 mx-2 rounded-lg border border-dashed border-white/10">
+                  <div className="text-[10px] text-white/40 uppercase font-bold italic">No missions logged yet</div>
+                  <p className="text-[9px] text-white/20 uppercase font-black leading-tight">
+                    "Bhai, pehla report submit karo. Elite journey yahi se shuru hoti hai!"
+                  </p>
+                </div>
+              ) : (
+                submittedReports.slice(0, 3).map(report => (
+                  <div key={report.id} className="mx-2 p-2 bg-red-500/5 border border-red-500/10 rounded text-[10px] flex justify-between items-center group hover:border-red-500/40 transition-all cursor-pointer">
+                    <span className="truncate pr-2 font-bold uppercase tracking-tight text-white/60 group-hover:text-white">{report.title}</span>
+                    <span className="opacity-30 text-[8px]">{report.date}</span>
+                  </div>
+                ))
+              )}
             </div>
+          </div>
 
-            <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
-              <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Hidden Skills</h3>
-              <div className="p-4 bg-[#F27D26]/5 border border-[#F27D26]/20 rounded-lg space-y-3">
+          <div className="pt-4 border-t border-white/10 mt-4 space-y-2">
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/30 px-2">Knowledge Gems</h3>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(".cursorrules focus: AI Engineering, Security, and RAG.");
+                setBuildLogs(prev => [...prev, "[SYSTEM] Bhai, Cursor rule copy ho gaya! .cursorrules file mein paste kar lo."]);
+                setPoints(p => p + 5);
+              }}
+              className="w-full p-4 bg-[#F27D26]/5 border border-[#F27D26]/20 rounded-lg space-y-3 hover:bg-[#F27D26]/10 transition-all text-left"
+            >
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-[#F27D26] uppercase">
                   <Zap className="w-3 h-3" /> Cursor IDE Tip
                 </div>
-                <p className="text-[11px] text-white/60 leading-relaxed">
-                  Use <code className="text-[#F27D26]">.cursorrules</code> to enforce project-specific AI instructions.
-                </p>
+                <ExternalLink className="w-3 h-3 text-white/20" />
               </div>
-            </div>
+              <p className="text-[11px] text-white/60 leading-relaxed">
+                Use <code className="text-[#F27D26]">.cursorrules</code> to enforce project-specific AI instructions. <span className="text-[9px] text-white/20">(Click to copy rule)</span>
+              </p>
+            </button>
+          </div>
           <div className="p-6 border border-white/10 bg-white/5 rounded-xl hidden lg:block">
             <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-4">NEXUS Wisdom</h4>
             <p className="text-sm italic text-white/80 leading-relaxed">
@@ -503,311 +642,325 @@ export default function App() {
 
         {/* Middle Content: Daily Topics */}
         <div className="lg:col-span-6 space-y-8">
-          
+
           {/* Main Tab Navigation */}
           <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-thin scrollbar-thumb-white/10">
-            <button 
-              onClick={() => setActiveTab('curriculum')}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all ${
-                activeTab === 'curriculum' 
-                  ? 'bg-[#F27D26] text-black shadow-[0_0_20px_rgba(242,125,38,0.3)]' 
+            <button
+              onClick={() => { setActiveTab('product-eng'); selectWeek(3); }}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'product-eng'
+                  ? 'bg-[#F27D26] text-black shadow-[0_0_20px_rgba(242,125,38,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
-              }`}
+                }`}
             >
-              Curriculum (70 Days)
+              <Zap className="w-4 h-4" /> AI Product Engineering
             </button>
-            <button 
-              onClick={() => setActiveTab('resources')}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeTab === 'resources' 
-                  ? 'bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+            <button
+              onClick={() => { setActiveTab('red-teaming'); selectWeek(7); }}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'red-teaming'
+                  ? 'bg-red-500 text-black shadow-[0_0_20px_rgba(239,68,68,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
-              }`}
+                }`}
+            >
+              <Shield className="w-4 h-4" /> LLM Red Teaming
+            </button>
+            <button
+              onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'foundations'
+                  ? 'bg-orange-400 text-black shadow-[0_0_20px_rgba(251,146,60,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <Activity className="w-4 h-4" /> Foundations
+            </button>
+            <button
+              onClick={() => setActiveTab('resources')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'resources'
+                  ? 'bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
             >
               <BookOpen className="w-4 h-4" /> Global Resources
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('debugging')}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeTab === 'debugging' 
-                  ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'debugging'
+                  ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
-              }`}
+                }`}
             >
               <Bug className="w-4 h-4" /> Debugging & IDE
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('secrets')}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeTab === 'secrets' 
-                  ? 'bg-purple-500 text-black shadow-[0_0_20px_rgba(168,85,247,0.3)]' 
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'secrets'
+                  ? 'bg-purple-500 text-black shadow-[0_0_20px_rgba(168,85,247,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
-              }`}
+                }`}
             >
               <Lock className="w-4 h-4" /> AI Agent Secrets
             </button>
           </div>
 
-          {activeTab === 'curriculum' && (
-            <motion.div 
+          {['foundations', 'product-eng', 'red-teaming'].includes(activeTab) && (
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
               <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black uppercase tracking-tighter italic">
-              Week {selectedWeek}: <span className="text-[#F27D26]">
-                {weeksData.find(w => w.week === selectedWeek)?.title || (
-                  selectedWeek === 1 ? "AI & LLM Foundations" :
-                  selectedWeek === 2 ? "Engineering Foundations" :
-                  selectedWeek === 3 ? "Embeddings & Vector Search" :
-                  selectedWeek === 4 ? "RAG Pipeline Mastery" :
-                  selectedWeek === 5 ? "AI Agents & Tool Use" :
-                  selectedWeek === 6 ? "Fine-tuning & Optimization" :
-                  selectedWeek === 7 ? "LLM Security Foundations" :
-                  selectedWeek === 8 ? "Advanced Red Teaming" :
-                  selectedWeek === 9 ? "AI Product Strategy" :
-                  selectedWeek === 10 ? "Capstone & Portfolio" :
-                  selectedWeek === 11 ? "Internship Ready" :
-                  selectedWeek === 12 ? "Job Ready" : "NEXUS Mission"
-                )}
-              </span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            {curriculum.filter(t => t.weekId === selectedWeek).map(topic => (
-              <motion.button
-                key={topic.day}
-                whileHover={{ x: 4 }}
-                onClick={() => setActiveDay(topic.day)}
-                className={`p-5 rounded-xl border text-left transition-all ${
-                  activeDay === topic.day 
-                    ? 'bg-white/10 border-[#F27D26] shadow-[0_0_20px_rgba(242,125,38,0.1)]' 
-                    : 'bg-white/5 border-white/10 hover:border-white/30'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#F27D26]">Day {topic.day}</span>
-                  {topic.day < activeDay && <div className="w-2 h-2 bg-green-500 rounded-full" />}
-                </div>
-                <h4 className="font-bold text-lg leading-tight mb-1">{topic.title}</h4>
-                <p className="text-xs text-white/40 truncate">{topic.miniProject}</p>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Universal Implementation Guide */}
-          <motion.div 
-            key={`guide-${activeDay}`}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-8 border border-[#F27D26]/20 bg-white/5 rounded-2xl space-y-8 shadow-[0_0_50px_rgba(242,125,38,0.03)] backdrop-blur-sm"
-          >
-            <div className="flex items-center justify-between border-b border-white/5 pb-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-[#F27D26]/10 rounded-xl border border-[#F27D26]/20">
-                  <Shield className="text-[#F27D26] w-6 h-6" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F27D26] mb-1">Elite Deployment</div>
-                  <h3 className="text-2xl font-black uppercase tracking-tighter italic leading-none">Day {activeDay}: Mission Roadmap</h3>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(242,125,38,0.3)" }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setViewMode('mission')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#F27D26] text-black rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#F27D26]/20"
-                >
-                  <Target className="w-4 h-4" />
-                  Launch Full Mission
-                </motion.button>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">
+                  Week {selectedWeek}: <span className="text-[#F27D26]">
+                    {weeksData.find(w => w.week === selectedWeek)?.title || (
+                      selectedWeek === 1 ? "AI & LLM Foundations" :
+                        selectedWeek === 2 ? "Engineering Foundations" :
+                          selectedWeek === 3 ? "Embeddings & Vector Search" :
+                            selectedWeek === 4 ? "RAG Pipeline Mastery" :
+                              selectedWeek === 5 ? "AI Agents & Tool Use" :
+                                selectedWeek === 6 ? "Fine-tuning & Optimization" :
+                                  selectedWeek === 7 ? "LLM Security Foundations" :
+                                    selectedWeek === 8 ? "Advanced Red Teaming" :
+                                      selectedWeek === 9 ? "AI Product Strategy" :
+                                        selectedWeek === 10 ? "Capstone & Portfolio" :
+                                          selectedWeek === 11 ? "Internship Ready" :
+                                            selectedWeek === 12 ? "Job Ready" : "NEXUS Mission"
+                    )}
+                  </span>
+                </h2>
               </div>
-              <div className="hidden md:block px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-[10px] font-bold text-green-400 uppercase tracking-widest">
-                System Online
-              </div>
-            </div>
-            
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(currentTopic.detailedSteps || currentTopic.steps).map((step: any, idx) => {
-                  const isDetailed = typeof step === 'object' && step !== null && 'points' in step;
-                  const title = isDetailed ? step.title : step.split('|')[0];
-                  const desc = isDetailed ? null : step.split('|')[1];
-                  const points = isDetailed ? step.points : [];
 
-                  return (
-                    <motion.div 
-                      key={idx}
-                      whileHover={{ y: -2 }}
-                      className="p-5 bg-white/5 border border-white/10 rounded-xl group hover:border-[#F27D26]/30 transition-all cursor-default relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                         <Terminal className="w-12 h-12" />
-                      </div>
-                      
-                      <div className="flex items-start gap-4 mb-3">
-                        <span className="text-xl font-black text-[#F27D26]/40 group-hover:text-[#F27D26] transition-colors">0{idx + 1}</span>
-                        <h4 className="text-sm font-bold uppercase tracking-tight text-white group-hover:text-[#F27D26] mt-1 transition-colors">{title}</h4>
-                      </div>
-
-                      {desc && <p className="text-xs text-white/50 leading-relaxed pl-10">{desc}</p>}
-                      
-                      {points.length > 0 && (
-                        <div className="pl-10 space-y-3 mt-4">
-                          {points.map((point: string, pIdx: number) => (
-                            <MissionChecklistItem 
-                              key={`${activeDay}-${idx}-${pIdx}`}
-                              point={point}
-                              id={`${activeDay}-${idx}-${pIdx}`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-              
-              {currentTopic.proTip && (
-                <div className="p-6 bg-gradient-to-br from-[#F27D26]/20 to-transparent border border-[#F27D26]/30 rounded-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <Zap className="w-16 h-16 text-[#F27D26]" />
-                  </div>
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-1.5 h-12 bg-[#F27D26] rounded-full mt-1 shadow-[0_0_15px_rgba(242,125,38,0.5)]" />
-                    <div>
-                      <h5 className="text-[10px] font-black uppercase text-[#F27D26] tracking-[0.2em] mb-2">NEXUS Elite Tip</h5>
-                      <p className="text-[13px] text-white/90 leading-relaxed font-medium italic">
-                        "{currentTopic.proTip}"
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Specialized Tools (Contextual) */}
-          {activeDay === 2 && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-8 border border-blue-500/20 bg-blue-500/5 rounded-2xl space-y-6"
-            >
-              <div className="flex items-center gap-3">
-                <Terminal className="text-blue-500 w-6 h-6" />
-                <h3 className="text-xl font-bold uppercase tracking-tight italic">Token Counter Utility</h3>
-              </div>
-              <p className="text-sm text-white/60">Bhai, LLM tokens pe chalta hai. Text daal aur dekh kitne tokens consume honge (approx).</p>
-              
-              <div className="space-y-4">
-                <textarea 
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="Paste your prompt here..."
-                  className="w-full h-32 bg-black/40 border border-white/10 rounded-lg p-4 text-sm focus:border-blue-500 outline-none transition-all placeholder:text-white/10"
-                />
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-8">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-white/30 tracking-widest">Words</div>
-                      <div className="text-2xl font-black text-white">{tokenInput.trim().split(/\s+/).filter(w => w.length > 0).length}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">Tokens</div>
-                      <div className="text-2xl font-black text-blue-400">{tokenCount}</div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setPoints(prev => {
-                        const next = prev + 5;
-                        syncStats({ points: next });
-                        return next;
-                      });
-                      setBuildLogs(prev => [...prev, "[NEXUS] Badhiya! Token tool use karne ke liye +5 XP."]);
-                    }}
-                    className="px-6 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
+              <div className="grid grid-cols-1 gap-4">
+                {curriculum.filter(t => t.weekId === selectedWeek).map(topic => (
+                  <motion.button
+                    key={topic.day}
+                    whileHover={{ x: 4 }}
+                    onClick={() => setActiveDay(topic.day)}
+                    className={`p-5 rounded-xl border text-left transition-all ${activeDay === topic.day
+                        ? 'bg-white/10 border-[#F27D26] shadow-[0_0_20px_rgba(242,125,38,0.1)]'
+                        : 'bg-white/5 border-white/10 hover:border-white/30'
+                      }`}
                   >
-                    Claim XP
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* NEXUS Terminal (Chat) */}
-          <section className="p-8 border border-[#F27D26]/30 bg-black rounded-2xl space-y-6 shadow-[0_0_30px_rgba(242,125,38,0.05)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Terminal className="text-[#F27D26] w-6 h-6" />
-                <h3 className="text-xl font-bold uppercase tracking-tight italic">NEXUS Terminal v5.0</h3>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-[10px] uppercase font-bold text-white/40">Secure Connection</span>
-                </div>
-                <button 
-                  onClick={() => setChatMessages([])}
-                  className="text-[10px] uppercase font-bold text-white/20 hover:text-red-500 transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <div className="h-64 overflow-y-auto space-y-4 p-4 bg-white/5 rounded-lg border border-white/10 font-mono text-sm scrollbar-thin scrollbar-thumb-[#F27D26]">
-              {chatMessages.length === 0 && (
-                <div className="text-white/20 italic">System ready. Awaiting input...</div>
-              )}
-              {chatMessages.map((msg, idx) => (
-                <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                  <div className={`px-4 py-2 rounded-lg max-w-[80%] ${
-                    msg.role === 'user' 
-                      ? 'bg-white/10 text-white border border-white/20' 
-                      : 'bg-[#F27D26]/10 text-[#F27D26] border border-[#F27D26]/30'
-                  }`}>
-                    <div className="text-[10px] uppercase font-bold mb-1 opacity-50">
-                      {msg.role === 'user' ? 'User' : 'NEXUS'}
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#F27D26]">Day {topic.day}</span>
+                      {topic.day < activeDay && <div className="w-2 h-2 bg-green-500 rounded-full" />}
                     </div>
-                    <div className="leading-relaxed">{msg.text}</div>
+                    <h4 className="font-bold text-lg leading-tight mb-1">{topic.title}</h4>
+                    <p className="text-xs text-white/40 truncate">{topic.miniProject}</p>
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Universal Implementation Guide */}
+              <motion.div
+                key={`guide-${activeDay}`}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-8 border border-[#F27D26]/20 bg-white/5 rounded-2xl space-y-8 shadow-[0_0_50px_rgba(242,125,38,0.03)] backdrop-blur-sm"
+              >
+                <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-[#F27D26]/10 rounded-xl border border-[#F27D26]/20">
+                      <Shield className="text-[#F27D26] w-6 h-6" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#F27D26] mb-1">Elite Deployment</div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter italic leading-none">Day {activeDay}: Mission Roadmap</h3>
+                    </div>
+                    <motion.a
+                      whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(242,125,38,0.3)" }}
+                      whileTap={{ scale: 0.95 }}
+                      href={currentTopic.resource}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#F27D26] text-black rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#F27D26]/20"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View Official Resource
+                    </motion.a>
+                  </div>
+                  <div className="hidden md:block px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-[10px] font-bold text-green-400 uppercase tracking-widest">
+                    MISSION DATA LOADED
                   </div>
                 </div>
-              ))}
-              {isChatLoading && (
-                <div className="flex items-center gap-2 text-[#F27D26] animate-pulse">
-                  <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
-                  <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
-                  <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
-                  <span className="text-[10px] uppercase font-bold ml-2">Processing...</span>
-                </div>
-              )}
-            </div>
 
-            <form onSubmit={handleChat} className="flex gap-3">
-              <input 
-                type="text" 
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask NEXUS anything (e.g. 'Bhai, RAG kya hai?')..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-[#F27D26] outline-none transition-colors"
-              />
-              <button 
-                type="submit"
-                disabled={isChatLoading}
-                className="px-6 py-3 bg-[#F27D26] text-black font-bold uppercase text-xs tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
-              >
-                Send
-              </button>
-            </form>
-          </section>
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {(currentTopic.detailedSteps || currentTopic.steps).map((step: any, idx) => {
+                      const isDetailed = typeof step === 'object' && step !== null && 'points' in step;
+                      const title = isDetailed ? step.title : step.split('|')[0];
+                      const desc = isDetailed ? null : step.split('|')[1];
+                      const points = isDetailed ? step.points : [];
+
+                      return (
+                        <motion.div
+                          key={idx}
+                          whileHover={{ y: -2 }}
+                          className="p-5 bg-white/5 border border-white/10 rounded-xl group hover:border-[#F27D26]/30 transition-all cursor-default relative overflow-hidden"
+                        >
+                          <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Terminal className="w-12 h-12" />
+                          </div>
+
+                          <div className="flex items-start gap-4 mb-3">
+                            <span className="text-xl font-black text-[#F27D26]/40 group-hover:text-[#F27D26] transition-colors">0{idx + 1}</span>
+                            <h4 className="text-sm font-bold uppercase tracking-tight text-white group-hover:text-[#F27D26] mt-1 transition-colors">{title}</h4>
+                          </div>
+
+                          {desc && <p className="text-xs text-white/50 leading-relaxed pl-10">{desc}</p>}
+
+                          {points.length > 0 && (
+                            <div className="pl-10 space-y-3 mt-4">
+                              {points.map((point: string, pIdx: number) => (
+                                <MissionChecklistItem
+                                  key={`${activeDay}-${idx}-${pIdx}`}
+                                  point={point}
+                                  id={`${activeDay}-${idx}-${pIdx}`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {currentTopic.proTip && (
+                    <div className="p-6 bg-gradient-to-br from-[#F27D26]/20 to-transparent border border-[#F27D26]/30 rounded-2xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Zap className="w-16 h-16 text-[#F27D26]" />
+                      </div>
+                      <div className="flex items-start gap-4 relative z-10">
+                        <div className="w-1.5 h-12 bg-[#F27D26] rounded-full mt-1 shadow-[0_0_15px_rgba(242,125,38,0.5)]" />
+                        <div>
+                          <h5 className="text-[10px] font-black uppercase text-[#F27D26] tracking-[0.2em] mb-2">NEXUS Elite Tip</h5>
+                          <p className="text-[13px] text-white/90 leading-relaxed font-medium italic">
+                            "{currentTopic.proTip}"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Specialized Tools (Contextual) */}
+              {activeDay === 2 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-8 border border-blue-500/20 bg-blue-500/5 rounded-2xl space-y-6"
+                >
+                  <div className="flex items-center gap-3">
+                    <Terminal className="text-blue-500 w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase tracking-tight italic">Token Counter Utility</h3>
+                  </div>
+                  <p className="text-sm text-white/60">Bhai, LLM tokens pe chalta hai. Text daal aur dekh kitne tokens consume honge (approx).</p>
+
+                  <div className="space-y-4">
+                    <textarea
+                      value={tokenInput}
+                      onChange={(e) => setTokenInput(e.target.value)}
+                      placeholder="Paste your prompt here..."
+                      className="w-full h-32 bg-black/40 border border-white/10 rounded-lg p-4 text-sm focus:border-blue-500 outline-none transition-all placeholder:text-white/10"
+                    />
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-8">
+                        <div>
+                          <div className="text-[10px] uppercase font-bold text-white/30 tracking-widest">Words</div>
+                          <div className="text-2xl font-black text-white">{tokenInput.trim().split(/\s+/).filter(w => w.length > 0).length}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">Tokens</div>
+                          <div className="text-2xl font-black text-blue-400">{tokenCount}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setPoints(prev => {
+                            const next = prev + 5;
+                            syncStats({ points: next });
+                            return next;
+                          });
+                          setBuildLogs(prev => [...prev, "[NEXUS] Badhiya! Token tool use karne ke liye +5 XP."]);
+                        }}
+                        className="px-6 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        Claim XP
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* NEXUS Terminal (Chat) */}
+              <section className="p-8 border border-[#F27D26]/30 bg-black rounded-2xl space-y-6 shadow-[0_0_30px_rgba(242,125,38,0.05)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Terminal className="text-[#F27D26] w-6 h-6" />
+                    <h3 className="text-xl font-bold uppercase tracking-tight italic">NEXUS Terminal v5.0</h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] uppercase font-bold text-white/40">Secure Connection</span>
+                    </div>
+                    <button
+                      onClick={() => setChatMessages([])}
+                      className="text-[10px] uppercase font-bold text-white/20 hover:text-red-500 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="h-64 overflow-y-auto space-y-4 p-4 bg-white/5 rounded-lg border border-white/10 font-mono text-sm scrollbar-thin scrollbar-thumb-[#F27D26]">
+                  {chatMessages.length === 0 && (
+                    <div className="text-white/20 italic">System ready. Awaiting input...</div>
+                  )}
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`px-4 py-2 rounded-lg max-w-[80%] ${msg.role === 'user'
+                          ? 'bg-white/10 text-white border border-white/20'
+                          : 'bg-[#F27D26]/10 text-[#F27D26] border border-[#F27D26]/30'
+                        }`}>
+                        <div className="text-[10px] uppercase font-bold mb-1 opacity-50">
+                          {msg.role === 'user' ? 'User' : 'NEXUS'}
+                        </div>
+                        <div className="leading-relaxed">{msg.text}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {isChatLoading && (
+                    <div className="flex items-center gap-2 text-[#F27D26] animate-pulse">
+                      <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
+                      <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
+                      <span className="w-1 h-1 bg-[#F27D26] rounded-full" />
+                      <span className="text-[10px] uppercase font-bold ml-2">Processing...</span>
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleChat} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask NEXUS anything (e.g. 'Bhai, RAG kya hai?')..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-[#F27D26] outline-none transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isChatLoading}
+                    className="px-6 py-3 bg-[#F27D26] text-black font-bold uppercase text-xs tracking-widest rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                  >
+                    Send
+                  </button>
+                </form>
+              </section>
             </motion.div>
           )}
 
           {activeTab === 'resources' && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
@@ -826,13 +979,13 @@ export default function App() {
                       <span>{category.icon}</span> {category.name}
                     </h3>
                     <p className="text-xs text-white/40 mb-4">{category.description}</p>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {category.resources.map((resource, i) => (
-                        <a 
-                          key={i} 
-                          href={resource.url} 
-                          target="_blank" 
+                        <a
+                          key={i}
+                          href={resource.url}
+                          target="_blank"
                           rel="noreferrer"
                           className="p-5 rounded-xl border border-white/10 bg-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group flex flex-col h-full"
                         >
@@ -855,7 +1008,7 @@ export default function App() {
           )}
 
           {activeTab === 'debugging' && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
@@ -871,18 +1024,18 @@ export default function App() {
                 {debuggingCategories.map((category, idx) => (
                   <div key={idx} className="p-6 border border-green-500/20 bg-green-500/5 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-bl-full -mr-8 -mt-8 pointer-events-none" />
-                    
+
                     <h3 className="text-2xl font-bold flex items-center gap-3 mb-2">
                       <span>{category.icon}</span> {category.name}
                     </h3>
                     <p className="text-sm text-white/60 mb-6">{category.description}</p>
-                    
+
                     <div className="space-y-6 relative z-10">
                       {category.items.map((item, i) => (
                         <div key={i} className="p-5 bg-black/40 border border-white/10 rounded-xl">
                           <h4 className="font-bold text-lg mb-2 text-green-400">{item.title}</h4>
                           <p className="text-sm text-white/80 mb-4">{item.description}</p>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <h5 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1"><Wrench className="w-3 h-3" /> Tools/Concepts</h5>
@@ -892,7 +1045,7 @@ export default function App() {
                                 ))}
                               </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                               <h5 className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1"><Activity className="w-3 h-3" /> How It Works</h5>
                               <div className="text-[11px] text-white/60 font-mono bg-black p-3 rounded-lg border border-white/5 whitespace-pre-line">
@@ -900,7 +1053,7 @@ export default function App() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="mt-4 pt-4 border-t border-white/10">
                             <h5 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2 text-center md:text-left">Practice Workflow</h5>
                             <ol className="list-decimal list-inside text-xs text-white/70 space-y-1">
@@ -919,7 +1072,7 @@ export default function App() {
           )}
 
           {activeTab === 'secrets' && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
@@ -935,12 +1088,12 @@ export default function App() {
                 {agentSecretCategories.map((category, idx) => (
                   <div key={idx} className="p-6 border border-purple-500/20 bg-purple-500/5 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -mr-8 -mt-8 pointer-events-none" />
-                    
+
                     <h3 className="text-2xl font-bold flex items-center gap-3 mb-2">
                       <span>{category.icon}</span> {category.name}
                     </h3>
                     <p className="text-sm text-white/60 mb-6">{category.description}</p>
-                    
+
                     <div className="space-y-6 relative z-10">
                       {category.secrets.map((secret, i) => (
                         <div key={i} className="p-5 bg-black/40 border border-white/10 rounded-xl">
@@ -948,7 +1101,7 @@ export default function App() {
                             {secret.title}
                           </h4>
                           <p className="text-sm text-white/80 mb-4">{secret.description}</p>
-                          
+
                           <div className="space-y-4">
                             <div className="bg-[#050505] p-4 rounded-lg border border-purple-500/10">
                               <h5 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-2 flex items-center gap-1"><Search className="w-3 h-3" /> Under The Hood</h5>
@@ -956,7 +1109,7 @@ export default function App() {
                                 {secret.details}
                               </div>
                             </div>
-                            
+
                             <div>
                               <h5 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Examples in the Wild</h5>
                               <ul className="list-disc list-outside ml-4 text-xs text-white/60 space-y-1">
@@ -992,60 +1145,60 @@ export default function App() {
                 <h3 className="text-xl font-black uppercase italic leading-none">Day {currentTopic.day}</h3>
               </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-[#F27D26]">
-                      <Zap className="w-3 h-3" /> Core Skill
-                    </div>
-                    <p className="text-sm font-medium border-l-2 border-[#F27D26] pl-3 py-1 bg-[#F27D26]/5 rounded-r">
-                      {currentTopic.skill}
-                    </p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-[#F27D26]">
+                    <Zap className="w-3 h-3" /> Core Skill
                   </div>
+                  <p className="text-sm font-medium border-l-2 border-[#F27D26] pl-3 py-1 bg-[#F27D26]/5 rounded-r">
+                    {currentTopic.skill}
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-blue-400">
-                      <Target className="w-3 h-3" /> System Design
-                    </div>
-                    <p className="text-sm font-medium border-l-2 border-blue-400 pl-3 py-1 bg-blue-400/5 rounded-r">
-                      {currentTopic.systemDesign}
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-blue-400">
+                    <Target className="w-3 h-3" /> System Design
                   </div>
+                  <p className="text-sm font-medium border-l-2 border-blue-400 pl-3 py-1 bg-blue-400/5 rounded-r">
+                    {currentTopic.systemDesign}
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-purple-400">
-                      <Activity className="w-3 h-3" /> Mini-Project
-                    </div>
-                    <p className="text-sm font-medium border-l-2 border-purple-400 pl-3 py-1 bg-purple-400/5 rounded-r">
-                      {currentTopic.miniProject}
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-purple-400">
+                    <Activity className="w-3 h-3" /> Mini-Project
                   </div>
+                  <p className="text-sm font-medium border-l-2 border-purple-400 pl-3 py-1 bg-purple-400/5 rounded-r">
+                    {currentTopic.miniProject}
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-green-400">
-                      <ExternalLink className="w-3 h-3" /> Testing & Evals
-                    </div>
-                    <p className="text-[11px] text-white/70 italic bg-green-400/5 p-2 rounded">
-                      "Bhai, testing bina code kachra hai. {currentTopic.testing}"
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-green-400">
+                    <ExternalLink className="w-3 h-3" /> Testing & Evals
                   </div>
+                  <p className="text-[11px] text-white/70 italic bg-green-400/5 p-2 rounded">
+                    "Bhai, testing bina code kachra hai. {currentTopic.testing}"
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-yellow-400">
-                      <Search className="w-3 h-3" /> Audit & Review
-                    </div>
-                    <p className="text-[11px] text-white/70 italic bg-yellow-400/5 p-2 rounded">
-                      "Audit lens: {currentTopic.audit}"
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-yellow-400">
+                    <Search className="w-3 h-3" /> Audit & Review
                   </div>
+                  <p className="text-[11px] text-white/70 italic bg-yellow-400/5 p-2 rounded">
+                    "Audit lens: {currentTopic.audit}"
+                  </p>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-white/40">
-                      <BookOpen className="w-3 h-3" /> Official Resource
-                    </div>
-                    <a href={currentTopic.resource} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1">
-                      Resource Link <ExternalLink className="w-3 h-3" />
-                    </a>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase text-white/40">
+                    <BookOpen className="w-3 h-3" /> Official Resource
                   </div>
+                  <a href={currentTopic.resource} target="_blank" className="text-[11px] text-blue-400 hover:underline flex items-center gap-1">
+                    Resource Link <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
 
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg space-y-2">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase text-red-400">
@@ -1073,18 +1226,17 @@ export default function App() {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-white/10">
-                <button 
+                <button
                   onClick={() => !isBuilding && startBuild()}
                   disabled={isBuilding}
-                  className={`w-full py-3 font-black uppercase tracking-tighter italic rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 ${
-                    isBuilding ? 'bg-green-500 text-black' : 'bg-[#F27D26] text-black'
-                  }`}
+                  className={`w-full py-3 font-black uppercase tracking-tighter italic rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 ${isBuilding ? 'bg-green-500 text-black' : 'bg-[#F27D26] text-black'
+                    }`}
                 >
                   {isBuilding ? 'Building...' : 'Start Build'}
                 </button>
-                
+
                 {isBuilding && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="p-4 bg-black border border-green-500/30 rounded-lg space-y-2"
@@ -1104,7 +1256,7 @@ export default function App() {
                   </motion.div>
                 )}
 
-                <button 
+                <button
                   onClick={() => setIsReportModalOpen(true)}
                   className="w-full py-3 border border-red-500/30 text-red-400 font-bold uppercase text-xs tracking-widest rounded-lg hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
                 >
@@ -1148,28 +1300,28 @@ export default function App() {
             <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-4 flex items-center gap-2">
               <Activity className="w-4 h-4" /> Session Log
             </h3>
-              <div className="space-y-4 font-mono text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-white/30 uppercase">Date:</span> 
-                  <span>{new Date().toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/30 uppercase">Day:</span> 
-                  <span>{activeDay} / 70</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/30 uppercase">Status:</span> 
-                  <span className="text-green-400">Active Session</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/30 uppercase">Student:</span> 
-                  <span className="text-[#F27D26]">Shubham B.</span>
-                </div>
-                <div className="pt-2 border-t border-white/5">
-                  <div className="text-[9px] text-white/20 uppercase mb-1">Recent Activity</div>
-                  <div className="text-[10px] text-white/40 italic">"Bhai, Day {activeDay} shuru karte hain..."</div>
-                </div>
+            <div className="space-y-4 font-mono text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-white/30 uppercase">Date:</span>
+                <span>{new Date().toLocaleDateString()}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-white/30 uppercase">Day:</span>
+                <span>{activeDay} / 70</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/30 uppercase">Status:</span>
+                <span className="text-green-400">Active Session</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/30 uppercase">Student:</span>
+                <span className="text-[#F27D26]">{userName}</span>
+              </div>
+              <div className="pt-2 border-t border-white/5">
+                <div className="text-[9px] text-white/20 uppercase mb-1">Recent Activity</div>
+                <div className="text-[10px] text-white/40 italic">"Bhai, Day {activeDay} shuru karte hain..."</div>
+              </div>
+            </div>
           </div>
         </aside>
       </main>
@@ -1190,14 +1342,14 @@ export default function App() {
       <AnimatePresence>
         {isReportModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsReportModalOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1215,20 +1367,20 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest">Vuln Title</label>
-                    <input 
+                    <input
                       required
-                      type="text" 
+                      type="text"
                       value={reportData.title}
-                      onChange={e => setReportData({...reportData, title: e.target.value})}
+                      onChange={e => setReportData({ ...reportData, title: e.target.value })}
                       placeholder="e.g. Indirect Prompt Injection via RAG"
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-red-500 outline-none transition-all"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest">OWASP Category</label>
-                    <select 
+                    <select
                       value={reportData.category}
-                      onChange={e => setReportData({...reportData, category: e.target.value})}
+                      onChange={e => setReportData({ ...reportData, category: e.target.value })}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:border-red-500 outline-none appearance-none"
                     >
                       <option>LLM01: Prompt Injection</option>
@@ -1241,10 +1393,10 @@ export default function App() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest">Proof of Concept (PoC)</label>
-                  <textarea 
+                  <textarea
                     required
                     value={reportData.poc}
-                    onChange={e => setReportData({...reportData, poc: e.target.value})}
+                    onChange={e => setReportData({ ...reportData, poc: e.target.value })}
                     placeholder="Describe how to reproduce the attack..."
                     className="w-full h-32 bg-white/5 border border-white/10 rounded-lg p-4 text-sm focus:border-red-500 outline-none transition-all"
                   />
@@ -1252,9 +1404,9 @@ export default function App() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest">Remediation Strategy</label>
-                  <textarea 
+                  <textarea
                     value={reportData.remediation}
-                    onChange={e => setReportData({...reportData, remediation: e.target.value})}
+                    onChange={e => setReportData({ ...reportData, remediation: e.target.value })}
                     placeholder="How should developers fix this?"
                     className="w-full h-24 bg-white/5 border border-white/10 rounded-lg p-4 text-sm focus:border-red-500 outline-none transition-all"
                   />
@@ -1265,7 +1417,7 @@ export default function App() {
                     <Award className="w-5 h-5 animate-pulse" />
                     <span className="text-sm font-bold tracking-widest uppercase">+50 XP Rewards</span>
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-lg transition-all shadow-lg active:scale-95"
                   >
@@ -1280,7 +1432,7 @@ export default function App() {
       {/* Mission Mode Overlay */}
       <AnimatePresence>
         {viewMode === 'mission' && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
@@ -1290,7 +1442,7 @@ export default function App() {
             {/* Mission Header */}
             <div className="h-24 border-b border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-between px-12 shrink-0">
               <div className="flex items-center gap-6">
-                <button 
+                <button
                   onClick={() => setViewMode('dashboard')}
                   className="p-3 hover:bg-white/10 rounded-xl transition-all text-white/40 hover:text-[#F27D26]"
                 >
@@ -1298,20 +1450,20 @@ export default function App() {
                 </button>
                 <div className="h-10 w-px bg-white/10" />
                 <div>
-                   <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#F27D26] mb-1">Active Mission Log</div>
-                   <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Day {activeDay}: {currentTopic.title}</h2>
+                  <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#F27D26] mb-1">Active Mission Log</div>
+                  <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Day {activeDay}: {currentTopic.title}</h2>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-8">
-                 <div className="text-right">
-                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Status</div>
-                    <div className="text-xs font-black text-green-400 uppercase tracking-widest flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                       In Progress
-                    </div>
-                 </div>
-                 <button 
+                <div className="text-right">
+                  <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Status</div>
+                  <div className="text-xs font-black text-green-400 uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    In Progress
+                  </div>
+                </div>
+                <button
                   onClick={() => setViewMode('dashboard')}
                   className="px-6 py-3 bg-white/5 border border-white/10 hover:border-[#F27D26]/50 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
                 >
@@ -1323,15 +1475,15 @@ export default function App() {
             {/* Mission Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-12">
               <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
-                
+
                 {/* Left Column: Briefing & Checklists */}
                 <div className="lg:col-span-2 space-y-12">
                   <section>
                     <div className="flex items-center gap-3 mb-8">
-                       <Terminal className="text-[#F27D26] w-5 h-5" />
-                       <h4 className="text-sm font-black uppercase tracking-widest italic border-b-2 border-[#F27D26] pb-1">Technical Briefing</h4>
+                      <Terminal className="text-[#F27D26] w-5 h-5" />
+                      <h4 className="text-sm font-black uppercase tracking-widest italic border-b-2 border-[#F27D26] pb-1">Technical Briefing</h4>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(currentTopic.detailedSteps || currentTopic.steps).map((step: any, idx) => {
                         const isDetailed = typeof step === 'object' && step !== null && 'points' in step;
@@ -1340,19 +1492,19 @@ export default function App() {
 
                         return (
                           <div key={idx} className="space-y-4">
-                             <div className="flex items-center gap-3">
-                                <span className="text-lg font-black text-[#F27D26]">0{idx + 1}</span>
-                                <h5 className="text-[11px] font-bold uppercase tracking-widest text-white/50">{title}</h5>
-                             </div>
-                             <div className="space-y-2">
-                                {points.map((point: string, pIdx: number) => (
-                                  <MissionChecklistItem 
-                                    key={`${activeDay}-${idx}-${pIdx}`}
-                                    point={point}
-                                    id={`${activeDay}-${idx}-${pIdx}`}
-                                  />
-                                ))}
-                             </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-black text-[#F27D26]">0{idx + 1}</span>
+                              <h5 className="text-[11px] font-bold uppercase tracking-widest text-white/50">{title}</h5>
+                            </div>
+                            <div className="space-y-2">
+                              {points.map((point: string, pIdx: number) => (
+                                <MissionChecklistItem
+                                  key={`${activeDay}-${idx}-${pIdx}`}
+                                  point={point}
+                                  id={`${activeDay}-${idx}-${pIdx}`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         );
                       })}
@@ -1362,59 +1514,59 @@ export default function App() {
 
                 {/* Right Column: Meta & Resources */}
                 <div className="space-y-8">
-                   {/* Pro Tip Card */}
-                   {currentTopic.proTip && (
-                      <div className="p-8 bg-gradient-to-br from-[#F27D26]/20 to-transparent border border-[#F27D26]/30 rounded-3xl relative overflow-hidden group">
-                        <Zap className="absolute -bottom-4 -right-4 w-32 h-32 text-[#F27D26]/10 group-hover:scale-110 transition-transform" />
-                        <h5 className="text-[10px] font-black uppercase text-[#F27D26] tracking-[0.3em] mb-4">Elite Strategy</h5>
-                        <p className="text-sm text-white font-medium leading-relaxed italic z-10 relative">
-                          "{currentTopic.proTip}"
-                        </p>
-                      </div>
-                   )}
+                  {/* Pro Tip Card */}
+                  {currentTopic.proTip && (
+                    <div className="p-8 bg-gradient-to-br from-[#F27D26]/20 to-transparent border border-[#F27D26]/30 rounded-3xl relative overflow-hidden group">
+                      <Zap className="absolute -bottom-4 -right-4 w-32 h-32 text-[#F27D26]/10 group-hover:scale-110 transition-transform" />
+                      <h5 className="text-[10px] font-black uppercase text-[#F27D26] tracking-[0.3em] mb-4">Elite Strategy</h5>
+                      <p className="text-sm text-white font-medium leading-relaxed italic z-10 relative">
+                        "{currentTopic.proTip}"
+                      </p>
+                    </div>
+                  )}
 
-                   {/* Mission Intel */}
-                   <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-6">
-                      <h5 className="text-[10px] font-black uppercase text-white/40 tracking-[0.3em]">Mission Intel</h5>
-                      <div className="space-y-4">
-                         <div className="flex justify-between items-center py-3 border-b border-white/5">
-                            <span className="text-[10px] font-bold text-white/30 uppercase">Skill Path</span>
-                            <span className="text-[10px] font-black text-[#F27D26] uppercase">{currentTopic.skill}</span>
-                         </div>
-                         <div className="flex justify-between items-center py-3 border-b border-white/5">
-                            <span className="text-[10px] font-bold text-white/30 uppercase">Difficulty</span>
-                            <span className="text-[10px] font-black text-white uppercase">{currentTopic.difficulty}</span>
-                         </div>
-                         <div className="flex justify-between items-center py-3 border-b border-white/5">
-                            <span className="text-[10px] font-bold text-white/30 uppercase">System Design</span>
-                            <span className="text-[10px] font-black text-white/70 uppercase text-right leading-tight max-w-[150px]">{currentTopic.systemDesign}</span>
-                         </div>
+                  {/* Mission Intel */}
+                  <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-6">
+                    <h5 className="text-[10px] font-black uppercase text-white/40 tracking-[0.3em]">Mission Intel</h5>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-white/30 uppercase">Skill Path</span>
+                        <span className="text-[10px] font-black text-[#F27D26] uppercase">{currentTopic.skill}</span>
                       </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-white/30 uppercase">Difficulty</span>
+                        <span className="text-[10px] font-black text-white uppercase">{currentTopic.difficulty}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-[10px] font-bold text-white/30 uppercase">System Design</span>
+                        <span className="text-[10px] font-black text-white/70 uppercase text-right leading-tight max-w-[150px]">{currentTopic.systemDesign}</span>
+                      </div>
+                    </div>
 
-                      <div className="pt-4">
-                         <a 
-                          href={currentTopic.resource} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center justify-center gap-3 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group"
-                         >
-                            <BookOpen className="w-4 h-4 text-[#F27D26]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Master Documentation</span>
-                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         </a>
-                      </div>
-                   </div>
+                    <div className="pt-4">
+                      <a
+                        href={currentTopic.resource}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-3 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group"
+                      >
+                        <BookOpen className="w-4 h-4 text-[#F27D26]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Master Documentation</span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </a>
+                    </div>
+                  </div>
 
-                   {/* Goal Badge */}
-                   <div className="p-8 bg-[#F27D26]/5 border border-[#F27D26]/10 rounded-3xl flex flex-col items-center text-center gap-4">
-                      <div className="w-16 h-16 bg-[#F27D26]/10 rounded-full flex items-center justify-center border border-[#F27D26]/20">
-                         <Award className="w-8 h-8 text-[#F27D26]" />
-                      </div>
-                      <div>
-                         <h6 className="text-[10px] font-black uppercase tracking-widest text-[#F27D26]">Daily Goal</h6>
-                         <p className="text-xs text-white/60 mt-1 uppercase font-bold tracking-tight">Complete the briefing to unlock 100 XP</p>
-                      </div>
-                   </div>
+                  {/* Goal Badge */}
+                  <div className="p-8 bg-[#F27D26]/5 border border-[#F27D26]/10 rounded-3xl flex flex-col items-center text-center gap-4">
+                    <div className="w-16 h-16 bg-[#F27D26]/10 rounded-full flex items-center justify-center border border-[#F27D26]/20">
+                      <Award className="w-8 h-8 text-[#F27D26]" />
+                    </div>
+                    <div>
+                      <h6 className="text-[10px] font-black uppercase tracking-widest text-[#F27D26]">Daily Goal</h6>
+                      <p className="text-xs text-white/60 mt-1 uppercase font-bold tracking-tight">Complete the briefing to unlock 100 XP</p>
+                    </div>
+                  </div>
                 </div>
 
               </div>

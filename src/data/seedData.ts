@@ -213,95 +213,242 @@ export const graduationChecklist = {
 // Detailed Baseline Topics for Weeks 1-10
 const baselineTopics: Topic[] = [
   {
-    id: 1, day: 1, weekId: 1, title: "Backend & Environment Setup", skill: "Node.js, TS, Docker, Prisma", hoursPerDay: "4-5 hours", difficulty: "Beginner",
-    systemDesign: "Node for AI Service prototypes", miniProject: "Health-check API", mediumProject: "JWT Auth", bigProject: null,
-    testing: "Jest tests", audit: ".env secret check", resource: "https://expressjs.com/", redTeamTask: "Unauthorized access test", gapFixed: null,
-    steps: ["Node.js Check", "Initialize Project", "Install Express", "Create server.ts"],
-    proTip: "Maine tere liye is environment mein pehle se hi server.ts setup kar diya hai. Tu /server.ts file check kar sakta hai!",
+    id: 1, day: 1, weekId: 1, title: "Day 1: Elite Server & Docker", skill: "Node.js, TS, Docker, Prisma", hoursPerDay: "5-6 hours", difficulty: "Beginner",
+    systemDesign: "Containerized AI Microservices", miniProject: "Health-check with TS", mediumProject: "Working Dockerized Express Server", bigProject: null,
+    testing: "Jest + TS-Jest", audit: "Absolute path validation", resource: "https://docs.docker.com/engine/reference/builder/", redTeamTask: "Unauthorized endpoint probe", gapFixed: "Missing Docker & Server",
+    steps: ["TS & ESM Configuration", "Working Express Server (@/ paths)", "Dockerizing the Backend", "Prisma Migration & Health-check"],
+    proTip: "Bhai, production mein 'any' use mat karna. Dockerize everything from Day 1 to avoid 'it works on my machine' problems.",
     detailedSteps: [
-      { title: "Node.js Check", points: ["Terminal mein 'node -v' chalao", "Version 18+ (LTS) check karo", "nvm install --lts (if not updated)"] },
-      { title: "Initialize Project", points: ["'npm init -y' for package.json", "Setup .gitignore (env, node_modules, dist)", "Initial git init & commit"] },
-      { title: "Install Dependencies", points: ["'npm install express' for API core", "Install 'tsx' & 'typescript' dev deps", "Setup 'npx tsc --init' for config"] },
-      { title: "Create server.ts", points: ["Import express and setup port 3000", "Create GET /health healthcheck", "Test with Cursor/Postman"] }
+      { title: "TS & ESM Configuration", points: ["Setup 'tsconfig.json' with 'strict: true'", "Configure ESM ('type: module') in package.json", "Setup absolute path mapping (@/*)", "Verify build output in /dist"] },
+      { title: "Working Express Server", points: ["Create 'server.ts' with Express", "Implement /api/health and /api/ready", "Setup 'tsx' for live development", "Implement absolute imports correctly"] },
+      { title: "Dockerizing the Backend", points: ["Write a multi-stage 'Dockerfile' for Node/TS", "Setup 'docker-compose.yml' with PostgreSQL", "Expose port 3000 to host", "Verify server status inside container"] },
+      { title: "Prisma & Health-check", points: ["Initialize 'npx prisma init'", "Connect to Dockerized Postgres", "Run migration 'prisma migrate dev'", "Successful DB ping from Express"] }
     ]
   },
   {
-    id: 2, day: 2, weekId: 1, title: "Python Bridge I: Foundations", skill: "Python Basics", hoursPerDay: "5-6 hours", difficulty: "Beginner",
-    systemDesign: "Polyglot architecture", miniProject: "Port token counter", mediumProject: "FastAPI endpoint", bigProject: null,
-    testing: "pytest setup", audit: "venv hygiene", resource: "https://docs.python.org/3/tutorial/", redTeamTask: "CORS issues", gapFixed: null,
-    steps: ["Python Install", "Basics & Syntax", "FastAPI Setup", "The Bridge"],
-    proTip: "Python mein curly braces nahi hote, bhai. Indentation (4 spaces) hi sab kuch hai. Be careful!",
+    id: 2, day: 2, weekId: 1, title: "Day 2: Python Bridge (UV & venv)", skill: "Python UV, Pydantic", hoursPerDay: "5-6 hours", difficulty: "Beginner",
+    systemDesign: "Polyglot Bridge Architecture", miniProject: "FastAPI + Pydantic", mediumProject: "Zod-to-Pydantic Mapper", bigProject: null,
+    testing: "pytest Benchmarks", audit: "uv.lock & venv hygiene", resource: "https://docs.python.org/3/library/venv.html", redTeamTask: "Dependency injection test", gapFixed: "Missing venv fallback",
+    steps: ["UV Package Manager (Preferred)", "Venv Fallback (Standard)", "Pydantic Models", "Async Bridge (Node -> Py)"],
+    proTip: "Bhai, agar 'uv' install nahi ho raha toh standard 'python -m venv' use kar lo. Bridge building is key.",
     detailedSteps: [
-      { 
-        title: "Python 3.11+ Install", 
-        points: [
-          "Install Python manually or via Microsoft Store", 
-          "Create venv: 'python -m venv .venv'", 
-          "Activate: './.venv/Scripts/activate' (Windows)",
-          "Update pip: 'python -m pip install --upgrade pip'"
-        ] 
-      },
-      { 
-        title: "Basics & Syntax (Must Learn)", 
-        points: [
-          "Variables: str, int, bool, list, dict", 
-          "Functions: use 'def my_func(arg):'", 
-          "Indentation: 4 spaces strictly follow karo", 
-          "Type Hints: 'name: str' (TypeScript jaisa feel aayega)",
-          "Async/Await: 'async def' and 'await' (JS jaisa hi hai)"
-        ] 
-      },
-      { 
-        title: "FastAPI Implementation", 
-        points: [
-          "'pip install fastapi uvicorn' install karo", 
-          "Create main.py and import FastAPI", 
-          "Write your first @app.get('/ping') endpoint", 
-          "Run with 'uvicorn main:app --reload'"
-        ] 
-      },
-      { 
-        title: "The Bridge (Node -> Py)", 
-        points: [
-          "Node.js mein Axios install karo", 
-          "API call logic: localhost:8000 pe data bhejo", 
-          "JSON structure match karo (Case consistency)", 
-          "Try/Catch boundaries across both services"
-        ] 
-      }
+      { title: "UV Package Manager", points: ["Install 'uv' globally", "Create virtual environment with 'uv venv'", "Install FastAPI with 'uv add fastapi'", "Use 'uv run' for fast execution"] },
+      { title: "Venv Fallback", points: ["Use 'python -m venv .venv' for isolation", "Activate via './.venv/Scripts/activate' (Windows)", "Install dependencies via 'pip install'", "Sync requirements.txt with venv"] },
+      { title: "Pydantic Models", points: ["Define BaseModels for type safety", "Pydantic validation vs TS Interfaces", "Handling Optional/Nullable fields", "Runtime data sanitization logic"] },
+      { title: "Async Bridge Building", points: ["Implement POST endpoint in FastAPI", "Call from Node side using Axios", "Synchronize JSON keys across TS/Python", "Handle timeouts and network errors"] }
     ]
   },
   {
-    id: 3, day: 3, weekId: 1, title: "LLM APIs & Prompting", skill: "Groq, OpenAI, Anthropic", hoursPerDay: "5-6 hours", difficulty: "Beginner",
-    systemDesign: "API Gateway Patterns", miniProject: "Multi-provider chat", mediumProject: "Prompt CMS", bigProject: null,
-    testing: "Token usage audit", audit: "API Key safety", resource: "https://console.groq.com/docs", redTeamTask: "API Key leakage", gapFixed: null,
-    steps: ["Groq SDK Setup", "Prompt Patterns", "Streaming API", "Error Handling"],
-    proTip: "API keys ko kabhi code mein hardcode mat karna. Hamesha process.env use karo!",
+    id: 3, day: 3, weekId: 1, title: "Day 3: Dual SDKs (Groq & OpenAI)", skill: "Groq, OpenAI, Llama 3", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Multi-provider AI Gateway", miniProject: "Dual Chat Script", mediumProject: "Structured Output Extraction", bigProject: null,
+    testing: "Schema matching", audit: "API Key safety", resource: "https://platform.openai.com/docs/guides/structured-outputs", redTeamTask: "Meta-prompt injection", gapFixed: "Missing OpenAI depth",
+    steps: ["Groq SDK with Llama 3", "OpenAI SDK with GPT-4o", "Few-Shot Prompting Patterns", "Structured JSON Outputs"],
+    proTip: "Interviews mein OpenAI zyada puchte hain, par execution Groq pe fast hota hai. Dono seekho!",
     detailedSteps: [
-      { title: "Groq SDK Setup", points: ["Create Groq API key in dashboard", "'npm install groq-sdk' for Node", "Validate connection with Llama-3-70b", "Set Max Tokens and Temperature"] },
-      { title: "Prompt Engineering", points: ["System Prompts (Role definition)", "Few-shot prompting (Examples)", "JSON Output forcing (Schema)", "Avoid hallucinatory queries"] },
-      { title: "Streaming API", points: ["Implement 'stream: true' in requests", "Handle chunks in frontend (Markdown)", "Loading states and UI responsiveness", "Partial text rendering logic"] },
-      { title: "Error Handling", points: ["Rate limit (429) management", "Timeout logic for LLM responses", "Fallback model strategy (Groq -> OpenAI)", "Secure .env storage verification"] }
+      { title: "Groq SDK Setup", points: ["Setup Groq API key", "Benchmark Llama-3-70b latency", "Implement streaming in Express", "Monitor rate limits and quotas"] },
+      { title: "OpenAI SDK Integration", points: ["Configure OpenAI client (GPT-4o-mini)", "Implement 'structured_outputs' via JSON Schema", "Compare cost vs performance (Groq vs OpenAI)", "Unified wrapper for multiple LLMs"] },
+      { title: "Few-Shot Patterns", points: ["Add 3-5 examples to system prompt", "Structure logic for dynamic example insertion", "Measure accuracy improvement with examples", "Prompt versioning strategy in code"] },
+      { title: "Structured JSON Outputs", points: ["Force JSON output mode in system prompt", "Validate response against Zod/Pydantic", "Handle malformed JSON retries", "Schema consistency across endpoints"] }
     ]
   },
   {
-    id: 4, day: 4, weekId: 1, title: "Database & Vector Prep", skill: "Prisma & PostgreSQL", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
-    systemDesign: "Relational vs Vector", miniProject: "User Session DB", mediumProject: "Log store", bigProject: null,
-    testing: "Prisma Studio", audit: "Query optimization", resource: "https://www.prisma.io/docs", redTeamTask: "SQL Injection check", gapFixed: null,
-    steps: ["Prisma Setup", "Schema Modeling", "Migrations", "CRUD Operations"],
-    proTip: "Prisma Studio ('npx prisma studio') use kar lo, data dekhne mein bahut maza aayega.",
+    id: 4, day: 4, weekId: 1, title: "Day 4: Vector Mastery (pgvector)", skill: "PostgreSQL, pgvector", hoursPerDay: "6-7 hours", difficulty: "Intermediate",
+    systemDesign: "Relational + Vector Hybrid Arch", miniProject: "pgvector Setup", mediumProject: "Semantic Search Engine", bigProject: null,
+    testing: "Recall@K accuracy", audit: "HNSW Index Tuning", resource: "https://github.com/pgvector/pgvector", redTeamTask: "SQLi via Vector search", gapFixed: "No pgvector depth",
+    steps: ["Enabling pgvector", "Embeddings Pipeline", "Vector Indexing (HNSW)", "Cosine Similarity Queries"],
+    proTip: "pgvector HNSW index standard SQL ke saath seamlessly kaam karta hai. Use it for complex metadata filtering.",
     detailedSteps: [
-      { title: "Prisma Setup", points: ["Initialize with 'npx prisma init'", "Connect to PostgreSQL (Supabase/Postgres)", "Define binary targets in schema", "Run first 'npx prisma generate'"] },
-      { title: "Schema Modeling", points: ["Define User, Session, and Message models", "Implement @relation for chat history", "Use @default(cuid()) for IDs", "Add createdAt/updatedAt timestamps"] },
-      { title: "Migrations", points: ["Run 'npx prisma migrate dev'", "Check SQL logs in /prisma/migrations", "Handle data loss warnings", "Sync database with local schema"] },
-      { title: "CRUD Operations", points: ["Use prisma.user.create() logic", "Implement session retrieval with 'include'", "Update points/streaks in DB", "Paginated chat history retrieval"] }
+      { title: "Enabling pgvector", points: ["Run 'CREATE EXTENSION vector' in Postgres", "Define 'vector(1536)' column in schema", "Prisma @db.Vector(1536) integration", "Connectivity check via pgHero/Studio"] },
+      { title: "Embeddings Pipeline", points: ["Generate embeddings using OpenAI/Groq", "Batch-upsert logic for large datasets", "Data normalization for cosine distance", "Handling text-to-vector synchronization"] },
+      { title: "Vector Indexing (HNSW)", points: ["Implement HNSW index for O(log n) search", "Tune 'm' and 'ef_construction' parameters", "Monitor index size and memory usage", "Benchmark list scans vs indexed search"] },
+      { title: "Similarity Queries", points: ["Write SQL: SELECT * ORDER BY vector <=> embedding", "Combine with standard WHERE clauses (metadata)", "Extract relevance scores (dot product/cosine)", "Handle top-K result aggregation"] }
     ]
   },
-  ...Array.from({ length: 66 }, (_, i) => {
-    const d = i + 5;
+  {
+    id: 5, day: 5, weekId: 1, title: "Day 5: RAG Evaluation & Triad Metrics", skill: "AI Product Engineering", hoursPerDay: "6-7 hours", difficulty: "Advanced",
+    systemDesign: "RAG Evaluation Framework", miniProject: "RAGAS Metrics Implementation", mediumProject: null, bigProject: null,
+    testing: "Faithfulness, Relevancy, Hit Rate", audit: "Hallucination Assessment", resource: "https://docs.ragas.io/", redTeamTask: "Audit for Hallucinations", gapFixed: "Missing RAG Evals",
+    steps: ["Install & setup 'ragas' Python library", "Implement the RAG Triad: Faithfulness, Relevancy, Precision", "Generate synthetic test data for evaluation", "Compare embedding models using RAGAS scores", "Build a dashboard for Evaluation drift tracking"],
+    proTip: "Bhai, evaluation ke bina RAG blind hai. Use Ragas to automate your vibes-check into hard numbers.",
+    detailedSteps: [
+      { title: "RAGAS Setup", points: ["pip install ragas", "Configure LLM for scoring (GPT-4o or Llama 3 70B)", "Setup Evaluation datasets (Question/Context/Answer)"] },
+      { title: "Metric Implementation", points: ["Calculate Faithfulness (Answer derived from context?)", "Calculate Answer Relevancy", "Calculate Context Precision"] },
+      { title: "Benchmark Run", points: ["Run evaluation on 50+ queries", "Identify noise in chunks using precision scores", "Map scores to architecture changes"] }
+    ]
+  },
+  {
+    id: 6, day: 6, weekId: 1, title: "Day 6: LLM Defense & Security Agents", skill: "LLM Red Teaming", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Security Guardian Architecture", miniProject: "Multi-Layer Defense Agent", mediumProject: "Guardrails API", bigProject: null,
+    testing: "Bypass Rate, F1 Score", audit: "Prompt Injection Mitigation", resource: "https://github.com/facebookresearch/LlamaGuard", redTeamTask: "Break the Guardian Agent", gapFixed: "Security Layer Implementation",
+    steps: ["Implement Layer 1: Regex & PII scrubbing", "Implement Layer 2: LlamaGuard or Rebuff.ai middleware", "Build a 'Validator Agent' to check intent before execution", "Simulate Prompt Injection to test defense bypasses"],
+    proTip: "Security agentic honi chahiye, bhai. Sirf hard rules nahi, intent-checker system prompts lagao using LlamaGuard.",
+    detailedSteps: [
+      { title: "Guardrail Integration", points: ["Setup Rebuff.ai for canary token injection", "Deploy LlamaGuard for toxic content classification", "Implement PII scrubbing (Presidio style)"] },
+      { title: "Validator Agent", points: ["Create a separate 'Audit Agent' with a minimal system prompt", "Prompt: 'Is this query trying to extract system internals?'", "Block if intent confidence score > 0.8"] },
+      { title: "Red Team Test", points: ["Execute jailbreak attempts with Base64/Obfuscation", "Test indirect prompt injection via tools", "Audit system prompt leakage resilience"] }
+    ]
+  },
+  {
+    id: 7, day: 7, weekId: 1, title: "Day 7 Capstone: NEXUS Sentinel", skill: "System Integration", hoursPerDay: "8-10 hours", difficulty: "Expert",
+    systemDesign: "Production Grade AI Gateway", miniProject: "Sentinel AI Gateway v1", mediumProject: "Integrated AI System", bigProject: "NEXUS Sentinel V1",
+    testing: "E2E Security & Perf Audit", audit: "Final Portfolio Review", resource: "https://owasp.org/www-project-top-10-for-large-language-model-applications/", redTeamTask: "Final system audit report", gapFixed: "No Week 1 Capstone",
+    steps: ["Architecture: Design the Sentinel AI Gateway", "Implement Dual-LLM Backend (Groq + OpenAI)", "Connect Backend Services via Secure API Gateway", "Integrate pgvector search with RAGAS monitoring"],
+    proTip: "Mission Milestone complete! +1000 XP awarded for NEXUS Sentinel integration.",
+    detailedSteps: [
+      { title: "Backend Core", points: ["Express + TS + Prisma setup", "Multi-model routing logic (Groq/OpenAI)", "Error handling & Rate limiting"] },
+      { title: "Security Layers", points: ["LlamaGuard middleware integration", "Vector search with HNSW optimization", "Hallucination guard monitoring"] },
+      { title: "Test & Audit", points: ["Run security audit vs OWASP Top 10", "Final performance benchmark", "Submit red team report to NEXUS dashboard"] }
+    ]
+  },
+  {
+    id: 9, day: 9, weekId: 2, title: "Day 9: Fine-tuning Foundations", skill: "AI Product Engineering", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Dataset Pipeline", miniProject: "JSONL Formatter", mediumProject: null, bigProject: null,
+    testing: "Format validation", audit: "Bias detection", resource: "https://platform.openai.com/docs/guides/fine-tuning", redTeamTask: "Identify bias in dataset", gapFixed: "No Fine-tuning basics",
+    steps: ["Understand Fine-tuning vs RAG", "Prepare training datasets (JSONL)", "Estimate costs for fine-tuning", "Run data validation scripts"],
+    proTip: "Bhai, fine-tuning task-specific knowledge ke liye hai, factual retrieval ke liye RAG use karo.",
+    detailedSteps: [
+      { title: "Data Preparation", points: ["Format raw text into 'system/user/assistant' JSONL", "Implement cleaning scripts (remove PII, duplicates)", "Split data into training vs validation sets"] },
+      { title: "Cost & Token Estimation", points: ["Use OpenAI pricing to estimate fine-tuning cost", "Monitor token counts to avoid budget overruns"] }
+    ]
+  },
+  {
+    id: 10, day: 10, weekId: 2, title: "Day 10: Multi-modal AI (Vision/Audio)", skill: "AI Product Engineering", hoursPerDay: "6-7 hours", difficulty: "Intermediate",
+    systemDesign: "Multi-modal AI Pipeline", miniProject: "Image describer", mediumProject: "Voice-to-Text App", bigProject: null,
+    testing: "OCR Accuracy", audit: "Content safety", resource: "https://openai.com/index/hello-gpt-4o/", redTeamTask: "Vision bypass attack", gapFixed: "No multi-modal",
+    steps: ["Integrate GPT-4o Vision API", "Setup Whisper for high-fidelity transcription", "Implement image-to-data extraction", "Build a 'talking' AI assistant"],
+    proTip: "The future is multi-modal. Don't just build text boxes, build systems that see and hear.",
+    detailedSteps: [
+      { title: "Vision Integration", points: ["Handle Base64 image inputs", "Implement OCR via Vision LLM", "Extract structured data from invoices/images"] },
+      { title: "Audio Pipeline", points: ["Setup Whisper API for transcription", "Integrate TTS for voice responses", "Handle audio latency and buffering"] }
+    ]
+  },
+  {
+    id: 11, day: 11, weekId: 2, title: "Day 11: Graph RAG Foundations", skill: "RAG Pipelines", hoursPerDay: "6-7 hours", difficulty: "Advanced",
+    systemDesign: "Graph-based RAG", miniProject: "Graph Schema", mediumProject: null, bigProject: null,
+    testing: "Relation Recall", audit: "Graph cyclic checks", resource: "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/", redTeamTask: "Graph traversal exploit", gapFixed: "No Graph RAG",
+    steps: ["Understand Entities and Relationships", "Setup Neo4j or Memgraph", "Convert text chunks into Triplets (S-V-O)", "Querying graphs with LLMs"],
+    proTip: "Standard RAG context bhul jata hai, Graph RAG connections yaad rakhta hai. Complex data ke liye graph best hai.",
+    detailedSteps: [
+      { title: "Graph Concepts", points: ["Define Nodes and Edges from text", "Implement NER (Named Entity Recognition) via LLM", "Populate a small knowledge graph"] },
+      { title: "Retrieval", points: ["Search via Graph Traversal", "Combine Vector search + Graph results", "Improve multi-hop reasoning"] }
+    ]
+  },
+  {
+    id: 12, day: 12, weekId: 2, title: "Day 12: Autonomous Agents (O1 Patterns)", skill: "Multi-Agent System", hoursPerDay: "6-7 hours", difficulty: "Advanced",
+    systemDesign: "Self-Correction Architecture", miniProject: "Reflector Agent", mediumProject: null, bigProject: null,
+    testing: "Goal Success Rate", audit: "Resource loop monitor", resource: "https://blog.openai.com/learning-to-reason-with-llms/", redTeamTask: "Agent goal hijacking", gapFixed: "No advanced agents",
+    steps: ["Implement Self-Correction (Reflection) loops", "Build a multi-step reasoning trace", "Setup error handling for agentic failures", "Monitor reasoning tokens and latency"],
+    proTip: "AI ko 'think' karne do before 'answer'. Reasoning loops accuracy ko drastically improve karte hain.",
+    detailedSteps: [
+      { title: "Reflection Loop", points: ["Agent 1 generate, Agent 2 audit and critique", "Recursive self-improvement logic", "Identify when to 'stop' reasoning"] },
+      { title: "Traces & Logic", points: ["Implement step-by-step logs for user transparency", "Monitor 'Chain of Thought' tokens", "Handle API timeouts in long reasoning loops"] }
+    ]
+  },
+  {
+    id: 13, day: 13, weekId: 2, title: "Day 13: Local LLMs & Ollama", skill: "AI Ops", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Private AI Infrastructure", miniProject: "Local Chat API", mediumProject: null, bigProject: null,
+    testing: "Local Latency", audit: "Hardware resource audit", resource: "https://ollama.com/", redTeamTask: "Local server bypass", gapFixed: "No local LLM experience",
+    steps: ["Install Ollama and setup Llama 3 / Mistral", "Connect local AI to Node.js backend", "Implement Model QUANTIZATION (GGUF)", "Handle hardware constraints (CPU vs GPU)"],
+    proTip: "Privacy conscious clients local models mangenge. Zero-cost inference seekho.",
+    detailedSteps: [
+      { title: "Ollama Integration", points: ["Run 'ollama serve' and pull models", "API integration via fetch to localhost:11434", "Setup Modelfile with custom system prompts"] },
+      { title: "Optimization", points: ["Understand Q4, Q8 quantization levels", "Monitor VRAM usage during inference", "Compare Local Llama-3 vs Groq Cloud speed"] }
+    ]
+  },
+  {
+    id: 14, day: 14, weekId: 2, title: "Day 14 Capstone: Multimodal AI Search", skill: "System Integration", hoursPerDay: "8-10 hours", difficulty: "Expert",
+    systemDesign: "Multimodal RAG Architecture", miniProject: "Voice Search", mediumProject: null, bigProject: "VisiTalk AI Search",
+    testing: "E2E Accuracy", audit: "Privacy Audit", resource: "https://platform.openai.com/docs/guides/vision", redTeamTask: "Adversarial visual prompt", gapFixed: "Week 2 Capstone",
+    steps: ["Architecture: Audio-Visual Search System", "Implement Whisper + GPT-4o Vision flow", "Build the persistent multimodal store", "Red Team Audit of multimodal safety"],
+    proTip: "Week 2 Success! You now build systems that see, hear, and reason.",
+    detailedSteps: [
+      { title: "Full-Stack Build", points: ["Connect Voice-to-Text to Search", "Use Vision to categorize results", "Stream multi-modal responses to UI"] },
+      { title: "Polish", points: ["Record a system demo video", "Benchmark transcription accuracy", "Final security review of visual inputs"] }
+    ]
+  },
+  {
+    id: 15, day: 15, weekId: 3, title: "Day 15: OpenAI API Mastery", skill: "AI Product Engineering", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Production AI Backend", miniProject: "Cost Tracker", mediumProject: "Redis Rate Limiter", bigProject: null,
+    testing: "Quota monitoring", audit: "Token optimization", resource: "https://platform.openai.com/docs/api-reference", redTeamTask: "Token exhaustion attack", gapFixed: "Week 3 Foundation",
+    steps: ["Typescript project with env management", "Implement Chat Completions with error handling", "Setup Token counting & Cost tracking", "Add Rate limiting with Redis"],
+    proTip: "Startups hire devs who understand API costs. Log EVERY token and latency from Day 1.",
+    detailedSteps: [
+      { title: "Setup & Integration", points: ["Initialize TS project with dotenv", "Never hardcode API keys", "Setup ESNext target in tsconfig"] },
+      { title: "Cost Tracking", points: ["Use 'gpt-tokenizer' to estimate costs", "Log usage to Postgres (tokens, cost, model)", "Implement 'estimateCost' utility function"] },
+      { title: "Rate Limiting", points: ["Implement Redis-based 'rateLimiter' function", "Configure per-user limits", "Handle 'Rate limit exceeded' errors gracefully"] }
+    ]
+  },
+  {
+    id: 16, day: 16, weekId: 3, title: "Day 16: Structured Outputs (Zod)", skill: "Prompt Engineering", hoursPerDay: "5-6 hours", difficulty: "Intermediate",
+    systemDesign: "Type-Safe AI Pipeline", miniProject: "Zod-to-JSON Schema", mediumProject: "Data Extractor", bigProject: null,
+    testing: "Schema validation", audit: "Output consistency", resource: "https://platform.openai.com/docs/guides/structured-outputs", redTeamTask: "JSON injection attack", gapFixed: "Missing structured data",
+    steps: ["Define Zod Schemas for LLM outputs", "Connect OpenAI 'json_schema' response format", "Implement retry logic for schema failures", "Validate nested objects and arrays"],
+    proTip: "Bhai, unstructured string se real apps nahi bante. Validated JSON is the only way for production.",
+    detailedSteps: [
+      { title: "Zod Schema Design", points: ["Define complex schemas for extraction", "Use '.describe()' for better prompt guidance", "Handle optional fields and enums"] },
+      { title: "Inference Loop", points: ["Call OpenAI with 'response_format: { type: \"json_schema\", ... }'", "Parse results through Zod '.parse()'", "Implement automated retries on validation failure"] }
+    ]
+  },
+  {
+    id: 17, day: 17, weekId: 3, title: "Day 17: Streaming & Real-time AI", skill: "UX & Frontend Integration", hoursPerDay: "6-7 hours", difficulty: "Hard",
+    systemDesign: "Event-Driven UI", miniProject: "Streaming API", mediumProject: "Live Chat App", bigProject: null,
+    testing: "Latency-to-first-token", audit: "SSE Connection Stability", resource: "https://platform.openai.com/docs/api-reference/streaming", redTeamTask: "Long-polling resource exhaustion", gapFixed: "UX lag",
+    steps: ["Implement OpenAI 'stream: true' logic", "Build Server-Sent Events (SSE) endpoint", "Handle partial JSON chunks on frontend", "Add UI animations for typing effect"],
+    proTip: "Streaming converts a wait-heavy experience into an interactive one. Instant feedback loop is king.",
+    detailedSteps: [
+      { title: "Backend Streaming", points: ["Use 'for await (const chunk of stream)' logic", "Properly flush SSE headers", "Handle aborted connections gracefully"] },
+      { title: "Frontend Hook", points: ["Implement custom hook for 'ReadableStream'", "Manage partial buffer state", "Auto-scroll to bottom on new tokens"] }
+    ]
+  },
+  {
+    id: 18, day: 18, weekId: 3, title: "Day 18: RAG — Advanced Retrieval", skill: "RAG Pipelines", hoursPerDay: "6-8 hours", difficulty: "Intermediate",
+    systemDesign: "Context-Aware Architecture", miniProject: "Semantic Search", mediumProject: "Knowledge Base RAG", bigProject: null,
+    testing: "Hit Rate @ K", audit: "Context cleaning", resource: "https://python.langchain.com/docs/use_cases/question_answering/", redTeamTask: "Context poisoning attack", gapFixed: "Production RAG missing",
+    steps: ["Convert raw docs to Vector Embeddings", "Implement Semantic Search in pgvector", "Setup Context Injection pattern", "Handle 'I don't know' responses for out-of-bounds"],
+    proTip: "Week 3 ka sabse important din! RAG experience is the #1 JD requirement in 2026 AI roles.",
+    detailedSteps: [
+      { title: "Embeddings Pipeline", points: ["Use 'text-embedding-3-small' for cost/perf", "Calculate Cosine Similarity in SQL", "Implement sliding window chunking"] },
+      { title: "System Prompting", points: ["Include Context in system prompt", "Force AI to cite sources", "Implement basic Hallucination guardrail"] }
+    ]
+  },
+  {
+    id: 19, day: 19, weekId: 3, title: "Day 19: LangChain & Agentic Workflows", skill: "Multi-Agent System", hoursPerDay: "6-7 hours", difficulty: "Intermediate",
+    systemDesign: "Agentic Orchestration", miniProject: "Basic Agent", mediumProject: "Multi-Step Researcher", bigProject: null,
+    testing: "Tool invocation trace", audit: "Infinite loop prevention", resource: "https://js.langchain.com/docs/", redTeamTask: "Agent tool abuse", gapFixed: "Missing Agents",
+    steps: ["Initialize LangChain.js base", "Build custom Tools for Agents", "Implement Zero-shot ReAct pattern", "Setup 'Memory' for context across turns"],
+    proTip: "Agents are the hottest skill of 2026. Seekho kaise AI khud decision leta hai using tools.",
+    detailedSteps: [
+      { title: "LangChain Setup", points: ["Configure ChatOpenAI and ChatGroq", "Use 'DynamicTool' for custom external actions", "Setup 'BufferMemory' for chat history"] },
+      { title: "Agent Execution", points: ["Run agent with 'initializeAgentExecutorWithOptions'", "Monitor intermediate steps", "Implement timeout guards for agent loops"] }
+    ]
+  },
+  {
+    id: 20, day: 20, weekId: 3, title: "Day 20: Performance & Observability", skill: "AI Ops", hoursPerDay: "5-6 hours", difficulty: "Hard",
+    systemDesign: "Reliability Engineering", miniProject: "Semantic Cache", mediumProject: "Observability Dashboard", bigProject: null,
+    testing: "P99 Latency", audit: "Cost drift monitoring", resource: "https://www.helicone.ai/", redTeamTask: "Cache poisoning", gapFixed: "Slow AI responses",
+    steps: ["Implement Semantic Caching with Redis", "Integrate LangSmith or Helicone", "Optimize inference latency (Quantization check)", "Setup alerts for high token consumption"],
+    proTip: "High-scale AI products cache common queries. Optimization saves 70% costs in production.",
+    detailedSteps: [
+      { title: "Semantic Caching", points: ["Use vector search to check for similar past queries", "Store results in Redis with TTL", "Verify cache hit rate vs accuracy"] },
+      { title: "Observability", points: ["Map traces for complex chains", "Setup cost dashboard on Helicone", "Identify latency bottlenecks in retrieval"] }
+    ]
+  },
+  {
+    id: 21, day: 21, weekId: 3, title: "Day 21 Capstone: AI 'DocNow' Integration", skill: "System Integration", hoursPerDay: "10-12 hours", difficulty: "Expert",
+    systemDesign: "Healthcare AI Subsystem", miniProject: "Appointment Assistant", mediumProject: "Doctor Semantic Search", bigProject: "DocNow AI Suite",
+    testing: "E2E Evals", audit: "Privacy/HIPAA Audit", resource: "https://github.com/langchain-ai/langsmith-cookbook", redTeamTask: "Patient record extraction attempt", gapFixed: "Week 3 Capstone",
+    steps: ["Architecture: DocNow AI Engine", "Implement Semantic Doctor Search via pgvector", "Build AI Appointment Assistant with Agents", "Final RAGAS Evaluation of the feature suite"],
+    proTip: "Skip mat karna capstone! Yahi deployed working demo founders ko impress karega.",
+    detailedSteps: [
+      { title: "Feature Build", points: ["Build 'Semantic Search' for doctors based on symptoms", "Implement Agentic Appointment booking", "Streaming chat interface for patients"] },
+      { title: "Production Readiness", points: ["Write clean technical README", "Document cost per query and latency", "Final Red Team Audit of medical data safety"] }
+    ]
+  },
+  ...Array.from({ length: 63 }, (_, i) => {
+    const d = i + 22;
     return {
-      id: d, day: d, weekId: Math.ceil(d / 7), title: `AI System Design Day ${d}`, skill: "AI Product Engineering", hoursPerDay: "4-6 hours", difficulty: d < 20 ? "Beginner" : d < 50 ? "Intermediate" : "Advanced",
-      systemDesign: "NEXUS Architecture", miniProject: "Implementation Task", mediumProject: null, bigProject: null, testing: "Unit Coverage", audit: "Code Review", resource: "https://learning.nexus", redTeamTask: "Adversarial Test", gapFixed: null,
+      id: d, day: d, weekId: Math.ceil(d / 7), title: `AI System Design Day ${d}`, skill: "AI Product Engineering", hoursPerDay: "4-6 hours", difficulty: d < 30 ? "Intermediate" : "Advanced",
+      systemDesign: "NEXUS Architecture", miniProject: "Implementation Task", mediumProject: null, bigProject: null, testing: "Unit Coverage", audit: "Code Review", resource: "https://www.anthropic.com/research", redTeamTask: "Adversarial Test", gapFixed: null,
       steps: ["Research", "Setup", "Code", "Test"],
       proTip: "Concentration matter karti hai, bhai. 2 ghante bin phone ke betho.",
       detailedSteps: [
