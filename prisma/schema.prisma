@@ -97,3 +97,43 @@ model GraduationChecklist {
   category String   @unique
   items    String[]
 }
+
+model DebuggingCategory {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  icon        String
+  description String          @db.Text
+  items       DebuggingItem[]
+}
+
+model DebuggingItem {
+  id            String            @id @default(cuid())
+  categoryId    String
+  title         String
+  description   String          @db.Text
+  howItWorks    String          @db.Text
+  tools         String[]
+  practiceSteps String[]
+  resources     Json // [{title, url}]
+  category      DebuggingCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model AgentSecretCategory {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  icon        String
+  description String        @db.Text
+  secrets     AgentSecret[]
+}
+
+model AgentSecret {
+  id              String              @id @default(cuid())
+  categoryId      String
+  title           String
+  description     String              @db.Text
+  details         String              @db.Text
+  examples        String[]
+  resources       Json // [{title, url}]
+  redTeamPlaybook String?             @db.Text
+  category        AgentSecretCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
