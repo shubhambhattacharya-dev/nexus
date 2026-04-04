@@ -137,3 +137,69 @@ model AgentSecret {
   redTeamPlaybook String?             @db.Text
   category        AgentSecretCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 }
+
+model ProjectIdea {
+  id          Int      @id @default(autoincrement())
+  category    String   // e.g., "AI Backend", "RAG", "Agents"
+  title       String
+  description String   @db.Text
+  difficulty  String   // Beginner, Intermediate, Advanced
+  skills      String[] // Required skills
+  techStack   String[] // Technologies to use
+  videoUrl    String?
+  resourceUrl String?
+}
+
+model Company {
+  id           Int             @id @default(autoincrement())
+  name         String
+  type         String          // FAANG, Startup, Product, Service
+  location     String
+  roles        CompanyRole[]
+  skillsNeeded CompanySkill[]
+}
+
+model CompanyRole {
+  id         Int            @id @default(autoincrement())
+  companyId   Int
+  title      String         // e.g., "AI Engineer", "Backend Developer"
+  level      String         // Intern, Junior, Senior, Staff
+  minStipend Int?
+  maxStipend Int?
+  company    Company        @relation(fields: [companyId], references: [id])
+}
+
+model CompanySkill {
+  id          Int     @id @default(autoincrement())
+  companyId   Int
+  skill       String
+  importance  String  // Must-Have, Good-to-Have, Nice-to-Have
+  company     Company @relation(fields: [companyId], references: [id])
+}
+
+model Syllabus {
+  id          Int             @id @default(autoincrement())
+  name        String          // e.g., "B.Tech CS 3rd Year"
+  university  String
+  semester    Int
+  subjects    SyllabusSubject[]
+}
+
+model SyllabusSubject {
+  id         Int      @id @default(autoincrement())
+  syllabusId Int
+  name       String   // e.g., "Database Management"
+  topics     String[] // Topics covered in this subject
+  mappedDays Int[]   // Day numbers from curriculum
+  syllabus   Syllabus @relation(fields: [syllabusId], references: [id])
+}
+
+model VideoResource {
+  id          Int      @id @default(autoincrement())
+  topicDay    Int      // Links to which curriculum day
+  title       String
+  channel     String   // YouTube channel name
+  url         String
+  duration    String   // e.g., "15:30"
+  type        String   // Tutorial, Project, Concept
+}

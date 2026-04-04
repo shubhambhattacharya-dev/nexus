@@ -179,7 +179,7 @@ async function startServer() {
 
       let dynamicContext = "";
       if (currentTopic) {
-        dynamicContext = `[CURRENT CONTEXT: User is on Day ${currentTopic.day} (Week ${currentTopic.week}) - Project: "${currentTopic.title}". Task: ${currentTopic.miniProject}. Bhai, focus your guidance on THIS specific project and milestone!]`;
+        dynamicContext = `[CURRENT CONTEXT: User is on Day ${currentTopic.day} (Week ${currentTopic.weekId}) - Project: "${currentTopic.title}". Task: ${currentTopic.miniProject}. Bhai, focus your guidance on THIS specific project and milestone!]`;
       }
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
@@ -264,7 +264,7 @@ async function startServer() {
 
       const chatCompletion = await groq.chat.completions.create({
         messages: messages as any,
-        model: "llama-3.3-70b-versatile",
+        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
         temperature: 0.7,
       });
 
@@ -312,6 +312,199 @@ async function startServer() {
       res.json(progress || { completed: false, notes: "", redTeamReportUrl: "" });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch progress" });
+    }
+  });
+
+  // PROJECT IDEAS API
+  app.get("/api/project-ideas", async (req, res) => {
+    try {
+      const { category, difficulty } = req.query;
+      const where: any = {};
+      if (category) where.category = category as string;
+      if (difficulty) where.difficulty = difficulty as string;
+      
+      const ideas = await prisma.projectIdea.findMany({ where });
+      res.json(ideas);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project ideas" });
+    }
+  });
+
+  // Generate project idea using AI
+  app.post("/api/project-ideas/generate", async (req, res) => {
+    try {
+      const { skill, difficulty } = req.body;
+      const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Groq API key not configured" });
+      }
+
+      const groq = new Groq({ apiKey });
+      
+      const prompt = `Generate a unique, real-world AI/Backend project idea for a student. 
+Current skill level: ${difficulty || 'Intermediate'}
+Focus skill: ${skill || 'AI Backend Development'}
+
+Respond ONLY in this JSON format (no extra text):
+{
+  "title": "Project Name",
+  "description": "What the project does in 2-3 sentences",
+  "category": "AI Backend" or "RAG" or "Agents" or "System Design",
+  "difficulty": "Beginner" or "Intermediate" or "Advanced",
+  "skills": ["skill1", "skill2", "skill3"],
+  "techStack": ["tech1", "tech2"]
+}`;
+
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.8,
+      });
+
+      const response = completion.choices[0]?.message?.content || "";
+      let projectData;
+      
+      try {
+        projectData = JSON.parse(response);
+      } catch {
+        return res.status(500).json({ error: "Failed to parse AI response" });
+      }
+
+      const newIdea = await prisma.projectIdea.create({
+        data: projectData
+      });
+
+      res.json(newIdea);
+    } catch (error) {
+      console.error("Project generation error:", error);
+      res.status(500).json({ error: "Failed to generate project idea" });
+    }
+  });
+
+  // COMPANY SKILLS API
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await prisma.company.findMany({
+        include: {
+          roles: true,
+          skillsNeeded: true
+        }
+      });
+      res.json(companies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  app.get("/api/companies/skills-match", async (req, res) => {
+    try {
+      const userSkills = (req.query.skills as string)?.split(",") || [];
+      
+      const companies = await prisma.company.findMany({
+        include: {
+          roles: true,
+          skillsNeeded: true
+        }
+      });
+
+      const matched = companies.map(company => {
+        const requiredSkills = company.skillsNeeded.map(s => s.skill.toLowerCase());
+        const userSkillSet = userSkills.map(s => s.toLowerCase());
+        
+        const matched = requiredSkills.filter(s => 
+          userSkillSet.some(us => us.includes(s) || s.includes(us))
+        );
+        
+        const matchPercent = requiredSkills.length > 0 
+          ? Math.round((matched.length / requiredSkills.length) * 100) 
+          : 0;
+
+        return {
+          ...company,
+          matchPercent,
+          matchedSkills: matched,
+          missingSkills: requiredSkills.filter(s => !matched.includes(s))
+        };
+      }).sort((a, b) => b.matchPercent - a.matchPercent);
+
+      res.json(matched);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to match skills" });
+    }
+  });
+
+  // SYLLABUS API
+  app.get("/api/syllabus", async (req, res) => {
+    try {
+      const syllabi = await prisma.syllabus.findMany({
+        include: { subjects: true }
+      });
+      res.json(syllabi);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch syllabus" });
+    }
+  });
+
+  app.get("/api/syllabus/match", async (req, res) => {
+    try {
+      const { syllabusId } = req.query;
+      if (!syllabusId) {
+        return res.status(400).json({ error: "syllabusId required" });
+      }
+
+      const syllabus = await prisma.syllabus.findUnique({
+        where: { id: parseInt(syllabusId as string) },
+        include: { subjects: true }
+      });
+
+      if (!syllabus) {
+        return res.status(404).json({ error: "Syllabus not found" });
+      }
+
+      // Get all topics from curriculum
+      const topics = await prisma.topic.findMany({ orderBy: { day: 'asc' } });
+
+      // Map each subject to curriculum days
+      const mapped = syllabus.subjects.map(subject => {
+        const mappedDays = subject.mappedDays || [];
+        const relatedTopics = topics.filter(t => mappedDays.includes(t.day));
+        
+        return {
+          subject: subject.name,
+          topics: subject.topics,
+          relatedCurriculum: relatedTopics.map(t => ({
+            day: t.day,
+            week: t.weekId,
+            title: t.title,
+            skill: t.skill
+          })),
+          coveragePercent: mappedDays.length > 0 ? 100 : 0
+        };
+      });
+
+      res.json({
+        syllabus: syllabus.name,
+        university: syllabus.university,
+        semester: syllabus.semester,
+        subjects: mapped
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to match syllabus" });
+    }
+  });
+
+  // VIDEO RESOURCES API
+  app.get("/api/videos", async (req, res) => {
+    try {
+      const { topicDay } = req.query;
+      const where: any = {};
+      if (topicDay) where.topicDay = parseInt(topicDay as string);
+      
+      const videos = await prisma.videoResource.findMany({ where });
+      res.json(videos);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch videos" });
     }
   });
 

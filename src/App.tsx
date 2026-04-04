@@ -1,11 +1,12 @@
 import { useEffect, useState, FormEvent } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Shield, Terminal, Zap, BookOpen, Target, ChevronRight, Award, Lock, ExternalLink, AlertTriangle, Bug, Wrench, Search, Clock, CheckCircle2, Circle, Rocket } from "lucide-react";
+import { Activity, Shield, Terminal, Zap, BookOpen, Target, ChevronRight, Award, Lock, ExternalLink, AlertTriangle, Bug, Wrench, Search, Clock, CheckCircle2, Circle, Rocket, RefreshCw, Briefcase, GraduationCap, TrendingUp, Users, DollarSign, FileText, Linkedin, Github, Send, Code, Brain, Lock as SecurityIcon, Lightbulb, Video, MapPin, Sparkles } from "lucide-react";
 import { curriculum as fallbackCurriculum } from "./data/seedData";
-import { getTopics, getWeeks, Week, Topic } from "./data/curriculum";
+import { getTopics, getWeeks, Week, Topic, phases } from "./data/curriculum";
 import { resourceCategories } from "./data/resources";
 import { debuggingCategories } from "./data/debuggingGuide";
 import { agentSecretCategories } from "./data/aiAgentSecrets";
+import { interviewQuestions, careerModules, companyTargets, graduationChecklist, mockInterviews } from "./data/careerPrep";
 
 function MissionChecklistItem({ point, id }: { point: string, id: string }) {
   const stepKey = `nexus-step-${id}`;
@@ -40,9 +41,9 @@ export default function App() {
   const [weeksData, setWeeksData] = useState<Week[]>([]);
   const [health, setHealth] = useState<{ status: string; message: string; timestamp: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedWeek, setSelectedWeek] = useState(3);
-  const [activeDay, setActiveDay] = useState(15); // Start at Day 15 (Week 3) per request for AI Product Eng Priority
-  const [activeTab, setActiveTab] = useState<'foundations' | 'product-eng' | 'red-teaming' | 'elite-model' | 'resources' | 'debugging' | 'secrets'>('product-eng');
+  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [activeDay, setActiveDay] = useState(0);
+  const [activeTab, setActiveTab] = useState<'learn' | 'test' | 'revision' | 'career' | 'resources' | 'debugging' | 'secrets' | 'projects' | 'companies' | 'syllabus' | 'videos'>('learn');
   const [viewMode, setViewMode] = useState<'dashboard' | 'mission'>('dashboard');
 
   const [userName, setUserName] = useState("Shubham B.");
@@ -92,6 +93,16 @@ export default function App() {
     ops: 0
   });
   const [storageUpdateTrigger, setStorageUpdateTrigger] = useState(0);
+
+  // Dynamic Data States
+  const [projectIdeas, setProjectIdeas] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [syllabi, setSyllabi] = useState<any[]>([]);
+  const [videos, setVideos] = useState<any[]>([]);
+  const [generatedProject, setGeneratedProject] = useState<any>(null);
+  const [isGeneratingProject, setIsGeneratingProject] = useState(false);
+  const [selectedSkillFilter, setSelectedSkillFilter] = useState("");
+  const [userSkills, setUserSkills] = useState<string[]>([]);
 
   useEffect(() => {
     const handleStorage = () => setStorageUpdateTrigger(prev => prev + 1);
@@ -365,7 +376,69 @@ export default function App() {
     fetchChatSession();
     fetchCurriculum();
     fetchWeeks();
+    fetchProjectIdeas();
+    fetchCompanies();
+    fetchSyllabus();
+    fetchVideos();
   }, []);
+
+  const fetchProjectIdeas = async () => {
+    try {
+      const res = await fetch("/api/project-ideas");
+      const data = await res.json();
+      setProjectIdeas(data);
+    } catch (err) {
+      console.error("Failed to fetch project ideas:", err);
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch("/api/companies");
+      const data = await res.json();
+      setCompanies(data);
+    } catch (err) {
+      console.error("Failed to fetch companies:", err);
+    }
+  };
+
+  const fetchSyllabus = async () => {
+    try {
+      const res = await fetch("/api/syllabus");
+      const data = await res.json();
+      setSyllabi(data);
+    } catch (err) {
+      console.error("Failed to fetch syllabus:", err);
+    }
+  };
+
+  const fetchVideos = async () => {
+    try {
+      const res = await fetch("/api/videos");
+      const data = await res.json();
+      setVideos(data);
+    } catch (err) {
+      console.error("Failed to fetch videos:", err);
+    }
+  };
+
+  const generateProjectIdea = async (skill: string, difficulty: string) => {
+    setIsGeneratingProject(true);
+    try {
+      const res = await fetch("/api/project-ideas/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill, difficulty })
+      });
+      const data = await res.json();
+      setGeneratedProject(data);
+      setBuildLogs(prev => [...prev, `[NEXUS] New project generated: ${data.title}`]);
+    } catch (err) {
+      console.error("Failed to generate project:", err);
+    } finally {
+      setIsGeneratingProject(false);
+    }
+  };
 
   const currentTopic = curriculum.find(t => t.day === activeDay) || curriculum[0];
 
@@ -375,11 +448,6 @@ export default function App() {
     if (typeof firstDayOfWeek === 'number') {
       setActiveDay(firstDayOfWeek);
     }
-    // Logic to switch tab based on new 42-day (6 week) roadmap
-    if ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(week)) setActiveTab('foundations');
-    else if ([15, 16, 17, 18, 19, 20, 21, 22, 23].includes(week)) setActiveTab('product-eng');
-    else if ([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37].includes(week)) setActiveTab('elite-model');
-    else setActiveTab('foundations'); 
   };
 
   const startBuild = () => {
@@ -512,136 +580,25 @@ export default function App() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">Mission Syllabus</h3>
+            <h3 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#F27D26] px-2">Weeks</h3>
             
             <div className="space-y-2">
-              {/* Category: Phase 0 - Internship */}
+              {/* Week Selection - Simple List */}
               <div className="space-y-1">
-                <button
-                  onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'foundations' ? 'bg-blue-400/10 border-blue-400/30 text-blue-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
-                >
-                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Rocket className="w-4 h-4" /> 🏗️ Phase 0: AI Backend
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'foundations' ? 'rotate-90' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {activeTab === 'foundations' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-1 mt-1 px-1"
-                    >
-                      {Array.from({ length: 15 }, (_, i) => i).map(wNum => {
-                        const weekObj = weeksData.find(w => w.week === wNum) || { 
-                          week: wNum, 
-                          title: wNum === 0 ? "Prerequisites" : wNum === 14 ? "Capstone" : `Internship Week ${wNum}` 
-                        };
-                        return (
-                          <button
-                            key={wNum}
-                            onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-blue-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
-                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Category: Phase 1-3 - Original */}
-              <div className="space-y-1">
-                <button
-                  onClick={() => { setActiveTab('product-eng'); selectWeek(15); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'product-eng' ? 'bg-orange-400/10 border-orange-400/30 text-orange-400' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
-                >
-                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Zap className="w-4 h-4" /> 🧩 Phase 1-3: Original
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'product-eng' ? 'rotate-90' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {activeTab === 'product-eng' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-1 mt-1 px-1"
-                    >
-                      {Array.from({ length: 9 }, (_, i) => i + 15).map(wNum => {
-                        const weekObj = weeksData.find(w => w.week === wNum) || { 
-                          week: wNum, 
-                          title: `Elite Week ${wNum - 14}` 
-                        };
-                        return (
-                          <button
-                            key={wNum}
-                            onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-orange-400 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
-                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Category: Phase 4-5 - Elite */}
-              <div className="space-y-1">
-                <button
-                  onClick={() => { setActiveTab('elite-model'); selectWeek(24); }}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all border ${activeTab === 'elite-model' ? 'bg-purple-500/10 border-purple-500/30 text-purple-500' : 'bg-white/5 border-transparent text-white/40 hover:border-white/10 hover:bg-white/10'}`}
-                >
-                  <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest">
-                    <Activity className="w-4 h-4" /> ⚡ Phase 4-5: Elite
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === 'elite-model' ? 'rotate-90' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {activeTab === 'elite-model' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-1 mt-1 px-1"
-                    >
-                      {Array.from({ length: 14 }, (_, i) => i + 24).map(wNum => {
-                        const weekObj = weeksData.find(w => w.week === wNum) || { 
-                          week: wNum, 
-                          title: `Model Eng Week ${wNum - 23}` 
-                        };
-                        return (
-                          <button
-                            key={wNum}
-                            onClick={() => selectWeek(wNum)}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-purple-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
-                              <span className="text-[11px] uppercase tracking-tight">{weekObj.title}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(wNum => (
+                  <button
+                    key={wNum}
+                    onClick={() => { selectWeek(wNum); setActiveTab('learn'); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between group ${selectedWeek === wNum ? 'bg-blue-500 text-black font-bold' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] opacity-40 font-mono">W{wNum}</span>
+                      <span className="text-[11px] uppercase tracking-tight">
+                        {wNum <= 8 ? "Phase 1: Internship Prep" : wNum <= 16 ? "Phase 2: AI Product" : wNum <= 26 ? "Phase 3: Red Team" : "Phase 4: Career"}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -741,39 +698,50 @@ export default function App() {
         {/* Middle Content: Daily Topics */}
         <div className="lg:col-span-6 space-y-8">
 
-          {/* Main Tab Navigation */}
+          {/* Main Tab Navigation - Learning Flow */}
           <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-thin scrollbar-thumb-white/10">
+            {/* LEARN flow - priority tabs */}
             <button
-              onClick={() => { setActiveTab('product-eng'); selectWeek(3); }}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'product-eng'
+              onClick={() => setActiveTab('learn')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'learn'
                   ? 'bg-[#F27D26] text-black shadow-[0_0_20px_rgba(242,125,38,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
-              <Zap className="w-4 h-4" /> AI Product Engineering
+              <BookOpen className="w-4 h-4" /> Learn
             </button>
             <button
-              onClick={() => { setActiveTab('red-teaming'); selectWeek(7); }}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'red-teaming'
-                  ? 'bg-red-500 text-black shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+              onClick={() => setActiveTab('test')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'test'
+                  ? 'bg-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
-              <Shield className="w-4 h-4" /> LLM Red Teaming
+              <Target className="w-4 h-4" /> Test
             </button>
             <button
-              onClick={() => { setActiveTab('elite-model'); selectWeek(10); }}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'elite-model'
+              onClick={() => setActiveTab('revision')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'revision'
+                  ? 'bg-blue-500 text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <RefreshCw className="w-4 h-4" /> Revision
+            </button>
+            <button
+              onClick={() => setActiveTab('career')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'career'
                   ? 'bg-purple-500 text-black shadow-[0_0_20px_rgba(168,85,247,0.3)]'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
-              <Zap className="w-4 h-4" /> Elite Model Engineering
+              <Briefcase className="w-4 h-4" /> Career
             </button>
+            {/* Legacy tabs */}
             <button
-              onClick={() => { setActiveTab('foundations'); selectWeek(1); }}
-              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'foundations'
-                  ? 'bg-orange-400 text-black shadow-[0_0_20px_rgba(251,146,60,0.3)]'
+              onClick={() => { selectWeek(0); }}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'learn'
+                  ? 'bg-[#F27D26] text-black'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
@@ -786,7 +754,7 @@ export default function App() {
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
-              <BookOpen className="w-4 h-4" /> Global Resources
+              <BookOpen className="w-4 h-4" /> Resources
             </button>
             <button
               onClick={() => setActiveTab('debugging')}
@@ -795,7 +763,7 @@ export default function App() {
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
             >
-              <Bug className="w-4 h-4" /> Debugging & IDE
+              <Bug className="w-4 h-4" /> Debugging
             </button>
             <button
               onClick={() => setActiveTab('secrets')}
@@ -806,9 +774,45 @@ export default function App() {
             >
               <Lock className="w-4 h-4" /> AI Agent Secrets
             </button>
+            <button
+              onClick={() => setActiveTab('projects')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'projects'
+                  ? 'bg-yellow-500 text-black shadow-[0_0_20px_rgba(234,179,8,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <Lightbulb className="w-4 h-4" /> Projects
+            </button>
+            <button
+              onClick={() => setActiveTab('companies')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'companies'
+                  ? 'bg-red-500 text-black shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <Users className="w-4 h-4" /> Companies
+            </button>
+            <button
+              onClick={() => setActiveTab('syllabus')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'syllabus'
+                  ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <MapPin className="w-4 h-4" /> Syllabus
+            </button>
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'videos'
+                  ? 'bg-pink-500 text-black shadow-[0_0_20px_rgba(236,72,153,0.3)]'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+            >
+              <Video className="w-4 h-4" /> Videos
+            </button>
           </div>
 
-          {['foundations', 'product-eng', 'red-teaming', 'elite-model'].includes(activeTab) && (
+          {['learn', 'test', 'revision', 'career'].includes(activeTab) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -818,20 +822,10 @@ export default function App() {
                 <h2 className="text-3xl font-black uppercase tracking-tighter italic">
                   Week {selectedWeek}: <span className="text-[#F27D26]">
                     {weeksData.find(w => w.week === selectedWeek)?.title || (
-                      selectedWeek === 0 ? "Prerequisites" :
-                      selectedWeek === 1 ? "Foundations & RAG" :
-                      selectedWeek === 2 ? "Advanced Retrieval" :
-                      selectedWeek === 3 ? "Agentic RAG" :
-                      selectedWeek === 4 ? "AI Product Eng I" :
-                      selectedWeek === 5 ? "AI Product Eng II" :
-                      selectedWeek === 6 ? "AI Product Eng III" :
-                      selectedWeek === 7 ? "Red Teaming I" :
-                      selectedWeek === 8 ? "Red Teaming II" :
-                      selectedWeek === 9 ? "Red Teaming III" :
-                      selectedWeek === 10 ? "Model Eng I" :
-                      selectedWeek === 11 ? "Model Eng II" :
-                      selectedWeek === 12 ? "Model Eng III" :
-                      selectedWeek === 13 ? "LLMOps" : "Global Capstone"
+                      selectedWeek <= 8 ? "AI Backend Internship Prep" :
+                      selectedWeek <= 16 ? "AI Product Engineering" :
+                      selectedWeek <= 26 ? "LLM Red Teaming" :
+                      "Career Launch & Mastery"
                     )}
                   </span>
                 </h2>
@@ -1233,6 +1227,493 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+              </motion.div>
+          )}
+
+          {/* PROJECTS TAB - Project Theme Generator */}
+          {activeTab === 'projects' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="p-8 border border-yellow-500/20 bg-yellow-500/5 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <Lightbulb className="w-8 h-8 text-yellow-500" />
+                  <h2 className="text-3xl font-black uppercase tracking-tighter italic text-yellow-500">
+                    Project Theme Generator
+                  </h2>
+                </div>
+                <p className="text-sm text-white/60 mb-6">
+                  Can't think of a project? AI will generate unique project ideas based on your skills and difficulty level.
+                </p>
+
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <select
+                    value={selectedSkillFilter}
+                    onChange={(e) => setSelectedSkillFilter(e.target.value)}
+                    className="px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:border-yellow-500 outline-none"
+                  >
+                    <option value="">Select Skill Area</option>
+                    <option value="AI Backend">AI Backend</option>
+                    <option value="RAG">RAG</option>
+                    <option value="Agents">Agents</option>
+                    <option value="System Design">System Design</option>
+                    <option value="Security">Security</option>
+                  </select>
+                  <select
+                    onChange={(e) => generateProjectIdea(selectedSkillFilter, e.target.value)}
+                    className="px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:border-yellow-500 outline-none"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                  <button
+                    onClick={() => generateProjectIdea(selectedSkillFilter, "Intermediate")}
+                    disabled={isGeneratingProject}
+                    className="px-6 py-2 bg-yellow-500 text-black font-bold uppercase text-xs tracking-widest rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-50"
+                  >
+                    {isGeneratingProject ? "Generating..." : <><Sparkles className="w-4 h-4 inline mr-2" /> Generate AI Project</>}
+                  </button>
+                </div>
+
+                {generatedProject && (
+                  <div className="p-6 bg-black/40 border border-yellow-500/30 rounded-xl">
+                    <h3 className="text-xl font-bold text-yellow-400 mb-2">{generatedProject.title}</h3>
+                    <p className="text-sm text-white/70 mb-4">{generatedProject.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {generatedProject.skills?.map((skill: string, i: number) => (
+                        <span key={i} className="text-[10px] bg-yellow-500/10 px-2 py-1 rounded-full text-yellow-400 border border-yellow-500/20">{skill}</span>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {generatedProject.techStack?.map((tech: string, i: number) => (
+                        <span key={i} className="text-[10px] bg-blue-500/10 px-2 py-1 rounded-full text-blue-400 border border-blue-500/20">{tech}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <h4 className="text-sm font-bold text-white/60 mb-3">Or choose from database:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {projectIdeas.filter(p => !selectedSkillFilter || p.category === selectedSkillFilter).slice(0, 6).map((idea, idx) => (
+                      <div key={idx} className="p-4 bg-white/5 border border-white/10 rounded-lg hover:border-yellow-500/30 transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">{idea.category}</span>
+                          <span className="text-[10px] text-white/40">{idea.difficulty}</span>
+                        </div>
+                        <h5 className="font-bold text-sm mb-1">{idea.title}</h5>
+                        <p className="text-[11px] text-white/50 line-clamp-2">{idea.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {idea.techStack?.slice(0, 3).map((t: string, i: number) => (
+                            <span key={i} className="text-[9px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* COMPANIES TAB - Skills Matcher */}
+          {activeTab === 'companies' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="p-8 border border-red-500/20 bg-red-500/5 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="w-8 h-8 text-red-500" />
+                  <h2 className="text-3xl font-black uppercase tracking-tighter italic text-red-500">
+                    Company Skills Matcher
+                  </h2>
+                </div>
+                <p className="text-sm text-white/60 mb-6">
+                  Check which companies match your skills. Select your skills to see job readiness for top companies.
+                </p>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {["Node.js", "Python", "MongoDB", "PostgreSQL", "RAG", "LLM", "Agents", "Docker", "AWS", "LangChain"].map(skill => (
+                    <button
+                      key={skill}
+                      onClick={() => setUserSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill])}
+                      className={`px-3 py-1.5 text-xs font-bold uppercase rounded-full border transition-all ${userSkills.includes(skill) ? 'bg-red-500 text-black border-red-500' : 'bg-white/5 text-white/60 border-white/10 hover:border-red-500/50'}`}
+                    >
+                      {skill}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {companies.slice(0, 8).map((company, idx) => {
+                    const companySkillSet = company.skillsNeeded?.map((s: any) => s.skill.toLowerCase()) || [];
+                    const userSkillSet = userSkills.map(s => s.toLowerCase());
+                    const matched = companySkillSet.filter((s: string) => userSkillSet.some(us => us.includes(s) || s.includes(us)));
+                    const matchPercent = companySkillSet.length > 0 ? Math.round((matched.length / companySkillSet.length) * 100) : 0;
+
+                    return (
+                      <div key={idx} className="p-5 bg-black/40 border border-white/10 rounded-xl">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-lg">{company.name}</h4>
+                            <span className="text-[10px] text-white/40 uppercase">{company.type} • {company.location}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-black ${matchPercent >= 70 ? 'text-green-400' : matchPercent >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {matchPercent}%
+                            </div>
+                            <span className="text-[9px] text-white/40">Match</span>
+                          </div>
+                        </div>
+                        <div className="mb-3">
+                          <span className="text-[10px] text-white/40 uppercase mr-2">Required:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {company.skillsNeeded?.slice(0, 4).map((s: any, i: number) => (
+                              <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded ${matched.includes(s.skill) ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/40'}`}>
+                                {s.skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {company.roles?.length > 0 && (
+                          <div className="pt-3 border-t border-white/10">
+                            <span className="text-[10px] text-white/40 uppercase">Open Roles:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {company.roles.slice(0, 2).map((r: any, i: number) => (
+                                <span key={i} className="text-[9px] bg-purple-500/10 px-1.5 py-0.5 rounded text-purple-400">{r.title}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* SYLLABUS TAB */}
+          {activeTab === 'syllabus' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="p-8 border border-cyan-500/20 bg-cyan-500/5 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <MapPin className="w-8 h-8 text-cyan-500" />
+                  <h2 className="text-3xl font-black uppercase tracking-tighter italic text-cyan-500">
+                    Syllabus Matcher
+                  </h2>
+                </div>
+                <p className="text-sm text-white/60 mb-6">
+                  Match your college syllabus with NEXUS curriculum. See which topics align with your academic requirements.
+                </p>
+
+                <div className="space-y-4">
+                  {syllabi.map((syllabus, idx) => (
+                    <div key={idx} className="p-5 bg-black/40 border border-white/10 rounded-xl">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-lg text-cyan-400">{syllabus.name}</h4>
+                          <span className="text-[10px] text-white/40">{syllabus.university} • Semester {syllabus.semester}</span>
+                        </div>
+                      </div>
+                      {syllabus.subjects?.length > 0 && (
+                        <div className="space-y-2 mt-4">
+                          <h5 className="text-[10px] font-bold uppercase text-white/40">Subjects:</h5>
+                          {syllabus.subjects.slice(0, 3).map((sub: any, i: number) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg">
+                              <div className="font-bold text-sm">{sub.name}</div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {sub.topics?.slice(0, 4).map((t: string, j: number) => (
+                                  <span key={j} className="text-[9px] bg-cyan-500/10 px-1.5 py-0.5 rounded text-cyan-400">{t}</span>
+                                ))}
+                              </div>
+                              {sub.mappedDays?.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-white/5">
+                                  <span className="text-[9px] text-green-400">✓ Covered in NEXUS Days: {sub.mappedDays.join(', ')}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* VIDEOS TAB */}
+          {activeTab === 'videos' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="p-8 border border-pink-500/20 bg-pink-500/5 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <Video className="w-8 h-8 text-pink-500" />
+                  <h2 className="text-3xl font-black uppercase tracking-tighter italic text-pink-500">
+                    Video Resources
+                  </h2>
+                </div>
+                <p className="text-sm text-white/60 mb-6">
+                  Curated video tutorials for each topic. Learn from the best YouTube channels.
+                </p>
+
+                <div className="space-y-3">
+                  {videos.length === 0 ? (
+                    <div className="text-center py-8 text-white/40">
+                      <Video className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                      <p>No videos loaded yet. Check back soon!</p>
+                    </div>
+                  ) : (
+                    videos.map((video, idx) => (
+                      <a
+                        key={idx}
+                        href={video.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-4 bg-black/40 border border-white/10 rounded-xl flex items-center gap-4 hover:border-pink-500/30 transition-all group"
+                      >
+                        <div className="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                          <Video className="w-6 h-6 text-pink-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-sm group-hover:text-pink-400 transition-colors">{video.title}</h4>
+                          <div className="flex items-center gap-2 text-[10px] text-white/40">
+                            <span>{video.channel}</span>
+                            <span>•</span>
+                            <span>{video.duration}</span>
+                            <span>•</span>
+                            <span className="bg-pink-500/10 px-1.5 py-0.5 rounded text-pink-400">{video.type}</span>
+                          </div>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-pink-400" />
+                      </a>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* CAREER TAB - Comprehensive Interview & Job Prep */}
+          {activeTab === 'career' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              {/* Phase Overview */}
+              <div className="p-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl">
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic text-purple-400 mb-2">
+                  Career & Interview Prep
+                </h2>
+                <p className="text-sm text-white/60 mb-4">Complete 6-phase transformation from Backend Developer to AI Product Engineer + LLM Red Teamer</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {phases.map(phase => (
+                    <div key={phase.id} className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${selectedWeek === phase.id ? 'bg-purple-500/20 border-purple-500' : 'bg-white/5 border-white/10 hover:border-purple-500/30'}`}>
+                      <div className="text-[10px] font-bold uppercase text-purple-400 mb-1">Phase {phase.id}</div>
+                      <div className="text-[9px] font-bold text-white/80">{phase.name.split('&')[0].trim()}</div>
+                      <div className="text-[8px] text-white/40">{phase.duration}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Target Companies */}
+              <div className="p-6 border border-green-500/20 bg-green-500/5 rounded-2xl">
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-green-400" /> Target Companies & Roles
+                </h3>
+                <div className="space-y-4">
+                  {companyTargets.map((company, idx) => (
+                    <div key={idx} className="p-4 bg-black/40 border border-white/10 rounded-xl flex justify-between items-center">
+                      <div>
+                        <div className="font-bold text-white">{company.name}</div>
+                        <div className="text-xs text-white/50">{company.roles.join(', ')}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-green-400">{company.salary}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interview Questions by Category */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Code className="w-5 h-5 text-blue-400" /> Interview Questions Bank
+                </h3>
+                
+                {/* Coding Questions */}
+                <div className="p-5 border border-blue-500/20 bg-blue-500/5 rounded-xl">
+                  <h4 className="font-bold text-blue-400 mb-4 flex items-center gap-2">
+                    <Brain className="w-4 h-4" /> Coding (LeetCode)
+                  </h4>
+                  <div className="space-y-3">
+                    {interviewQuestions.filter(q => q.category === 'coding').slice(0, 5).map(q => (
+                      <div key={q.id} className="p-3 bg-black/40 border border-white/10 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-white/80">{q.question}</span>
+                          <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded ${q.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' : q.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{q.difficulty}</span>
+                        </div>
+                        <p className="text-[10px] text-white/50 line-clamp-2">{q.answer}</p>
+                        {q.followUp && <p className="text-[9px] text-purple-400 mt-2">Follow-up: {q.followUp[0]}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* System Design */}
+                <div className="p-5 border border-purple-500/20 bg-purple-500/5 rounded-xl">
+                  <h4 className="font-bold text-purple-400 mb-4 flex items-center gap-2">
+                    <Target className="w-4 h-4" /> System Design (AI Focus)
+                  </h4>
+                  <div className="space-y-3">
+                    {interviewQuestions.filter(q => q.category === 'system-design').map(q => (
+                      <div key={q.id} className="p-3 bg-black/40 border border-white/10 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-white/80">{q.question}</span>
+                          <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">{q.difficulty}</span>
+                        </div>
+                        <p className="text-[10px] text-white/50 line-clamp-3">{q.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Concepts */}
+                <div className="p-5 border border-orange-500/20 bg-orange-500/5 rounded-xl">
+                  <h4 className="font-bold text-orange-400 mb-4 flex items-center gap-2">
+                    <Brain className="w-4 h-4" /> AI/LLM Concepts
+                  </h4>
+                  <div className="space-y-3">
+                    {interviewQuestions.filter(q => q.category === 'ai-concepts').map(q => (
+                      <div key={q.id} className="p-3 bg-black/40 border border-white/10 rounded-lg">
+                        <div className="text-xs font-bold text-white/80 mb-2">{q.question}</div>
+                        <p className="text-[10px] text-white/50 line-clamp-3">{q.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Security */}
+                <div className="p-5 border border-red-500/20 bg-red-500/5 rounded-xl">
+                  <h4 className="font-bold text-red-400 mb-4 flex items-center gap-2">
+                    <SecurityIcon className="w-4 h-4" /> LLM Security & Red Teaming
+                  </h4>
+                  <div className="space-y-3">
+                    {interviewQuestions.filter(q => q.category === 'security').map(q => (
+                      <div key={q.id} className="p-3 bg-black/40 border border-white/10 rounded-lg">
+                        <div className="text-xs font-bold text-white/80 mb-2">{q.question}</div>
+                        <p className="text-[10px] text-white/50 line-clamp-3">{q.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Behavioral */}
+                <div className="p-5 border border-green-500/20 bg-green-500/5 rounded-xl">
+                  <h4 className="font-bold text-green-400 mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4" /> Behavioral (STAR Method)
+                  </h4>
+                  <div className="space-y-3">
+                    {interviewQuestions.filter(q => q.category === 'behavioral').map(q => (
+                      <div key={q.id} className="p-3 bg-black/40 border border-white/10 rounded-lg">
+                        <div className="text-xs font-bold text-white/80 mb-2">{q.question}</div>
+                        <p className="text-[10px] text-white/50 line-clamp-3">{q.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Career Modules */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-yellow-400" /> Career Action Modules
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {careerModules.map(module => (
+                    <div key={module.id} className="p-5 bg-white/5 border border-white/10 rounded-xl hover:border-yellow-500/30 transition-all">
+                      <div className="flex items-center gap-2 mb-3">
+                        <GraduationCap className="w-4 h-4 text-yellow-400" />
+                        <h4 className="font-bold text-sm">{module.title}</h4>
+                      </div>
+                      <p className="text-xs text-white/50 mb-3">{module.description}</p>
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-bold text-yellow-400 uppercase">Actions:</div>
+                        {module.actions.slice(0, 3).map((action, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-[10px] text-white/60">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" /> {action}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Graduation Checklist */}
+              <div className="p-6 border border-[#F27D26]/20 bg-[#F27D26]/5 rounded-2xl">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-[#F27D26]" /> Graduation Checklist
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase text-[#F27D26] mb-3">Technical Skills</h4>
+                    <div className="space-y-2">
+                      {graduationChecklist.technical.backend.map((skill, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-white/70">
+                          <div className="w-1 h-1 bg-[#F27D26] rounded-full" /> {skill}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase text-[#F27D26] mb-3">Interview Targets</h4>
+                    <div className="space-y-2">
+                      {Object.entries(graduationChecklist.interview).map(([key, value]) => (
+                        <div key={key} className="flex items-center gap-2 text-xs text-white/70">
+                          <div className="w-1 h-1 bg-blue-500 rounded-full" /> {key}: {value}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mock Interview Schedule */}
+              <div className="p-6 border border-blue-500/20 bg-blue-500/5 rounded-2xl">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-400" /> Mock Interview Schedule
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {mockInterviews.map(interview => (
+                    <div key={interview.id} className="p-4 bg-black/40 border border-white/10 rounded-lg flex justify-between items-center">
+                      <div>
+                        <div className="font-bold text-sm text-white">{interview.type}</div>
+                        <div className="text-xs text-white/50">{interview.focus}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-blue-400">{interview.duration}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}
